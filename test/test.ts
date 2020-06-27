@@ -6,7 +6,6 @@ import allSat from "../src/all-sat";
 import tautology from "../src/tautology";
 import sat from "../src/sat";
 import espresso from "../src/espresso";
-import { invIdx } from "../src/common";
 
 const smtSolvers: { [name: string]: (string: string) => string } = {
   "yices-smt2": (input: string) => {
@@ -73,7 +72,7 @@ function randomCube(maxVar: number, cardinality: number): Cube {
   const set: Set<number> = new Set();
   while (set.size < cardinality) {
     const i = Math.trunc(random() * maxVar * 2);
-    if (!set.has(i) && !set.has(invIdx(i))) set.add(i);
+    if (!set.has(i) && !set.has(i ^ 1)) set.add(i);
   }
   return Cube.from(set);
 }

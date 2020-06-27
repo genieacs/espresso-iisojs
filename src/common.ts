@@ -89,10 +89,6 @@ export function componentReduction(
   return [...map.values()].map((c) => [...c]);
 }
 
-export function invIdx(n: number): number {
-  return n + 1 - (n % 2) * 2;
-}
-
 export function invBi(n: BI.bigint): BI.bigint {
   return BI.or(
     BI.lshift(BI.and(n, BIGINT_ODD), BIGINT_1),

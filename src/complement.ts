@@ -4,7 +4,6 @@ import {
   BIGINT_0,
   invBi,
   BIGINT_INDEX,
-  invIdx,
   bitIndices,
   bitIndicesOdd,
   MAX_LITERALS,
@@ -50,7 +49,7 @@ export default function complement(
   if (cover.cubes.length === 1) {
     const inv = invBi(lit);
     for (const f of bitIndices(free))
-      res.push(Cube.fromBigInt(BI.or(inv, BIGINT_INDEX[invIdx(f)])));
+      res.push(Cube.fromBigInt(BI.or(inv, BIGINT_INDEX[f ^ 1])));
     return res;
   }
 
@@ -183,7 +182,7 @@ function complementUnate(
   if (cover.cubes.length === 1) {
     const inv = invBi(lit);
     for (const f of freeIdx)
-      res.push(Cube.fromBigInt(BI.or(inv, BIGINT_INDEX[invIdx(f)])));
+      res.push(Cube.fromBigInt(BI.or(inv, BIGINT_INDEX[f ^ 1])));
     return;
   }
 
