@@ -4,7 +4,22 @@
   "description": "Implementation of Espresso-II method for heuristic minimization of single output boolean functions",
   "main": "dist/yebool.cjs.js",
   "module": "dist/yebool.esm.js",
-  "browser": "dist/yebool.umd.js",
+  "exports": {
+    ".": {
+      "import": "dist/yebool.esm.js",
+      "require": "dist/yebool.cjs.js"
+    },
+    "./jsbi": {
+      "import": "dist/yebool-jsbi.esm.js",
+      "require": "dist/yebool-jsbi.cjs.js"
+    }
+  },
+  "files": [
+    "dist/yebool.esm.js",
+    "dist/yebool.cjs.js",
+    "dist/yebool-jsbi.esm.js",
+    "dist/yebool-jsbi.cjs.js"
+  ],
   "scripts": {
     "test": "ts-node test/test.ts",
     "lint-eslint": "eslint --fix \"src/*.ts\"",
@@ -28,6 +43,7 @@
   },
   "homepage": "https://github.com/genieacs/yebool#readme",
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^8.1.0",
     "@rollup/plugin-typescript": "^5.0.0",
     "@types/node": "^14.0.13",
     "@typescript-eslint/eslint-plugin": "^3.4.0",
@@ -38,5 +54,8 @@
     "rollup": "^2.18.0",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.5"
+  },
+  "optionalDependencies": {
+    "jsbi": "^3.1.3"
   }
 }

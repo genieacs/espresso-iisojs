@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
     "target": "esnext",
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "noImplicitReturns": true,
     "strict": true
   },
   "include": [
-      "src/*.ts"
+    "src/*.ts"
   ]
 }

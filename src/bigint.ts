@@ -1,6 +1,7 @@
 export function and(a: bigint, b: bigint): bigint {
   return a & b;
 }
+
 export function or(a: bigint, b: bigint): bigint {
   return a | b;
 }
