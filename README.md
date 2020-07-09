@@ -25,7 +25,7 @@ A formula is represented as an array of arrays of numbers. Literals are
 represented as unsigned numbers where the least significant bit denotes the
 polarity of the literal, and the remaining bits are the literal number
 left-shifted by 1. For example, the clause `-1 2 -3` in DIMACS format would be
-`[0, 4, 8]`.
+`[2, 5, 6]`.
 
 # Quick start
 
