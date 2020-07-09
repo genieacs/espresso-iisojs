@@ -12,13 +12,15 @@
     "./jsbi": {
       "import": "dist/yebool-jsbi.esm.js",
       "require": "dist/yebool-jsbi.cjs.js"
-    }
+    },
+    "./index.d.ts": "./index.d.ts"
   },
   "files": [
     "dist/yebool.esm.js",
     "dist/yebool.cjs.js",
     "dist/yebool-jsbi.esm.js",
-    "dist/yebool-jsbi.cjs.js"
+    "dist/yebool-jsbi.cjs.js",
+    "index.d.ts"
   ],
   "scripts": {
     "test": "ts-node test/test.ts",
