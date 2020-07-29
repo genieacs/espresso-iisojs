@@ -1,6 +1,6 @@
 {
   "name": "yebool",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Implementation of Espresso-II method for heuristic minimization of single output boolean functions",
   "type": "module",
   "main": "dist/yebool.mjs",
