@@ -36,16 +36,21 @@ export function complement(dnf: number[][]): number[][] {
   return fromCubes(res);
 }
 
+interface Options {
+  computeOffSet?: boolean;
+  canRaise?: (idx: number, set: Set<number>) => boolean;
+}
+
 export function espresso(
   onSet: number[][],
-  dcSet: number[][],
-  computeOffSet = false
+  dcSet: number[][] = [],
+  options: Options = {}
 ): number[][] {
   const _onSet = toCubes(onSet);
   const _dcSet = toCubes(dcSet);
-  const _offSet = computeOffSet
+  const _offSet = options.computeOffSet
     ? _complement(Cover.from([..._onSet, ..._dcSet]))
     : undefined;
-  const res = _espresso(_onSet, _dcSet, _offSet);
+  const res = _espresso(_onSet, _dcSet, _offSet, options.canRaise);
   return fromCubes(res);
 }

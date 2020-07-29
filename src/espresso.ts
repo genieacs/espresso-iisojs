@@ -15,11 +15,18 @@ import {
   BIGINT_0C,
 } from "./common";
 
+type CanRaiseCallback = (idx: number, set: Set<number>) => boolean;
+
 function COVERS(cover: Cover, cube: Cube): boolean {
   return tautology(cover, invBi(cube.bigint));
 }
 
-function EXPAND1(cube: Cube, onSet: Cube[], offSet: Cube[]): Cube {
+function EXPAND1(
+  cube: Cube,
+  onSet: Cube[],
+  offSet: Cube[],
+  canRaise: CanRaiseCallback
+): Cube {
   const cubeInv = invBi(cube.bigint);
   let blockingMatrix = offSet.map(
     (c) => new Set(bitIndices(BI.and(cubeInv, c.bigint)))
@@ -70,32 +77,40 @@ function EXPAND1(cube: Cube, onSet: Cube[], offSet: Cube[]): Cube {
       let cnt = 0;
       let raise = -1;
       for (const r of feasible) {
-        if (count[r] > cnt) {
+        if (count[r] > cnt && canRaise(r ^ 1, cube.set)) {
           cnt = count[r];
           raise = r;
         }
       }
-      toRaise.delete(raise);
-      cube = cube.raise(raise ^ 1);
-      coveringMatrix = coveringMatrix.filter(
-        (c) => !(c.delete(raise) && !c.size)
-      );
-      for (const b of blockingMatrix) b.delete(raise);
-    } else {
-      let cnt = 0;
-      let raise = -1;
-      for (const r of toRaise) {
-        if (count[r] > cnt) {
-          cnt = count[r];
-          raise = r;
-        }
+      if (raise >= 0) {
+        toRaise.delete(raise);
+        cube = cube.raise(raise ^ 1);
+        coveringMatrix = coveringMatrix.filter(
+          (c) => !(c.delete(raise) && !c.size)
+        );
+        for (const b of blockingMatrix) b.delete(raise);
+        continue;
       }
-      toRaise.delete(raise);
-
-      cube = cube.raise(raise ^ 1);
-      for (const c of coveringMatrix) c.delete(raise);
-      for (const b of blockingMatrix) b.delete(raise);
     }
+
+    let cnt = 0;
+    let raise = -1;
+    for (const r of toRaise) {
+      if (count[r] > cnt && canRaise(r ^ 1, cube.set)) {
+        cnt = count[r];
+        raise = r;
+      }
+    }
+
+    if (raise < 0) {
+      toRaise.clear();
+      break;
+    }
+
+    toRaise.delete(raise);
+    cube = cube.raise(raise ^ 1);
+    for (const c of coveringMatrix) c.delete(raise);
+    for (const b of blockingMatrix) b.delete(raise);
   }
 
   if (blockingMatrix.length) {
@@ -108,7 +123,12 @@ function EXPAND1(cube: Cube, onSet: Cube[], offSet: Cube[]): Cube {
   return cube;
 }
 
-function EXPAND1_PRESTO(cube: Cube, onSet: Cube[], cover: Cover): Cube {
+function EXPAND1_PRESTO(
+  cube: Cube,
+  onSet: Cube[],
+  cover: Cover,
+  canRaise: CanRaiseCallback
+): Cube {
   const cubeInv = invBi(cube.bigint);
   let coveringMatrix = onSet.map(
     (c) => new Set(bitIndices(BI.and(cubeInv, c.bigint)))
@@ -129,11 +149,17 @@ function EXPAND1_PRESTO(cube: Cube, onSet: Cube[], cover: Cover): Cube {
       (a, b) => +feasible.has(a) - +feasible.has(b) || count[a] - count[b]
     );
 
+    const cantRaise = [];
     while (toRaise.length) {
       const r = toRaise.pop() as number;
+      if (!canRaise(r ^ 1, cube.set)) {
+        cantRaise.push(r);
+        continue;
+      }
       const nc = cube.raise(r ^ 1);
       if (!COVERS(cover, nc)) {
         coveringMatrix = coveringMatrix.filter((c) => !c.has(r));
+        toRaise.push(...cantRaise);
         break;
       }
       cube = nc;
@@ -149,7 +175,8 @@ function EXPAND(
   onSet: Cube[],
   dcSet: Cube[],
   offSet: Cube[] | undefined,
-  primes: WeakSet<Cube>
+  primes: WeakSet<Cube>,
+  canRaise: CanRaiseCallback
 ): Cube[] {
   if (!onSet.length) return onSet;
   onSet = onSet.slice();
@@ -160,8 +187,13 @@ function EXPAND(
     let cube = onSet[0];
     if (!primes.has(cube)) {
       cube = offSet
-        ? EXPAND1(cube, onSet, offSet)
-        : EXPAND1_PRESTO(cube, onSet, Cover.from([...onSet, ...dcSet]));
+        ? EXPAND1(cube, onSet, offSet, canRaise)
+        : EXPAND1_PRESTO(
+            cube,
+            onSet,
+            Cover.from([...onSet, ...dcSet]),
+            canRaise
+          );
     }
     onSet = onSet.filter((o) => !cube.covers(o));
     onSet.push(cube);
@@ -677,15 +709,20 @@ function MAXIMUM_REDUCTION(onSet: Cube[], dcSet: Cube[]): Cube[] {
   return reduced;
 }
 
-function LAST_GASP(onSet: Cube[], dcSet: Cube[], offSet?: Cube[]): Cube[] {
+function LAST_GASP(
+  onSet: Cube[],
+  dcSet: Cube[],
+  canRaise: CanRaiseCallback,
+  offSet?: Cube[]
+): Cube[] {
   const reduced = MAXIMUM_REDUCTION(onSet, dcSet);
   const newCubes: Cube[] = [];
   const cover = offSet ? null : Cover.from([...onSet, ...dcSet]);
   for (let i = reduced.length; i > 0; --i) {
     const cube = reduced.shift() as Cube;
     const expanded = offSet
-      ? EXPAND1(cube, reduced, offSet)
-      : EXPAND1_PRESTO(cube, reduced, cover as Cover);
+      ? EXPAND1(cube, reduced, offSet, canRaise)
+      : EXPAND1_PRESTO(cube, reduced, cover as Cover, canRaise);
 
     for (const c of reduced) if (expanded.covers(c)) newCubes.push(expanded);
 
@@ -702,11 +739,12 @@ function COST(cover: Cube[]): number {
 export default function espresso(
   onSet: Cube[],
   dcSet: Cube[],
-  offSet?: Cube[]
+  offSet?: Cube[],
+  canRaise: CanRaiseCallback = () => true
 ): Cube[] {
   if (!onSet.length) return onSet;
   const primes: WeakSet<Cube> = new WeakSet();
-  onSet = EXPAND(onSet, dcSet, offSet, primes);
+  onSet = EXPAND(onSet, dcSet, offSet, primes, canRaise);
   onSet = IRREDUNDANT_COVER(onSet, dcSet);
   const essentialPrimes = ESSENTIAL_PRIMES(onSet, dcSet);
   if (essentialPrimes.length) {
@@ -717,11 +755,11 @@ export default function espresso(
   let cost = COST(onSet);
   for (;;) {
     let onSet2 = REDUCE(onSet, dcSet, primes);
-    onSet2 = EXPAND(onSet2, dcSet, offSet, primes);
+    onSet2 = EXPAND(onSet2, dcSet, offSet, primes, canRaise);
     onSet2 = IRREDUNDANT_COVER(onSet2, dcSet);
     let cost2 = COST(onSet2);
     if (cost2 >= cost) {
-      onSet2 = LAST_GASP(onSet, dcSet, offSet);
+      onSet2 = LAST_GASP(onSet, dcSet, canRaise, offSet);
       cost2 = COST(onSet2);
       if (cost2 >= cost) break;
     }
