@@ -118,7 +118,8 @@ function EXPAND1(
     for (const m of MINLOW) toRaise.delete(m);
   }
 
-  for (const t of toRaise) cube = cube.raise(t ^ 1);
+  for (const t of toRaise)
+    if (canRaise(t ^ 1, cube.set)) cube = cube.raise(t ^ 1);
 
   return cube;
 }
@@ -153,7 +154,7 @@ function EXPAND1_PRESTO(
     while (toRaise.length) {
       const r = toRaise.pop() as number;
       if (!canRaise(r ^ 1, cube.set)) {
-        cantRaise.push(r);
+        cantRaise.unshift(r);
         continue;
       }
       const nc = cube.raise(r ^ 1);
@@ -165,6 +166,7 @@ function EXPAND1_PRESTO(
       cube = nc;
       for (const c of coveringMatrix) c.delete(r);
       coveringMatrix = coveringMatrix.filter((c) => c.size);
+      toRaise.push(...cantRaise.splice(0));
     }
   }
 
