@@ -3,15 +3,15 @@
   "version": "1.0.1",
   "description": "Implementation of Espresso-II method for heuristic minimization of single output boolean functions",
   "type": "module",
-  "main": "dist/yebool.mjs",
+  "main": "dist/yebool.cjs",
   "exports": {
     ".": {
-      "import": "dist/yebool.mjs",
-      "require": "dist/yebool.cjs"
+      "import": "./dist/yebool.mjs",
+      "require": "./dist/yebool.cjs"
     },
     "./jsbi": {
-      "import": "dist/yebool-jsbi.mjs",
-      "require": "dist/yebool-jsbi.cjs"
+      "import": "./dist/yebool-jsbi.mjs",
+      "require": "./dist/yebool-jsbi.cjs"
     },
     "./index.d.ts": "./index.d.ts"
   },
