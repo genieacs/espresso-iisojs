@@ -2,7 +2,6 @@
   "name": "espresso-iisojs",
   "version": "1.0.2",
   "description": "Implementation of Espresso-II method for heuristic minimization of single output boolean functions",
-  "type": "module",
   "main": "dist/espresso-iisojs.cjs",
   "exports": {
     ".": {
@@ -45,17 +44,17 @@
   },
   "homepage": "https://github.com/genieacs/espresso-iisojs#readme",
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^8.1.0",
+    "@rollup/plugin-node-resolve": "^9.0.0",
     "@rollup/plugin-typescript": "^5.0.0",
-    "@types/node": "^14.0.13",
-    "@typescript-eslint/eslint-plugin": "^3.4.0",
-    "@typescript-eslint/parser": "^3.4.0",
-    "eslint": "^7.3.1",
+    "@types/node": "^14.6.4",
+    "@typescript-eslint/eslint-plugin": "^4.1.0",
+    "@typescript-eslint/parser": "^4.1.0",
+    "eslint": "^7.8.1",
     "eslint-config-prettier": "^6.11.0",
-    "prettier": "^2.0.5",
-    "rollup": "^2.18.0",
-    "ts-node": "^8.10.2",
-    "typescript": "^3.9.5"
+    "prettier": "^2.1.1",
+    "rollup": "^2.26.11",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2"
   },
   "optionalDependencies": {
     "jsbi": "^3.1.3"
