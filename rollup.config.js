@@ -9,8 +9,8 @@ export default [
       typescript()
     ],
     output: [
-      { file: "dist/yebool.cjs", format: "cjs" },
-      { file: "dist/yebool.mjs", format: 'es' }
+      { file: "dist/espresso-iisojs.cjs", format: "cjs" },
+      { file: "dist/espresso-iisojs.mjs", format: 'es' }
     ]
   },
   
@@ -28,8 +28,8 @@ export default [
       typescript()
     ],
     output: [
-      { file: "dist/yebool-jsbi.cjs", format: "cjs" },
-      { file: "dist/yebool-jsbi.mjs", format: 'es' }
+      { file: "dist/espresso-iisojs-jsbi.cjs", format: "cjs" },
+      { file: "dist/espresso-iisojs-jsbi.mjs", format: 'es' }
     ]
   }	
 ];

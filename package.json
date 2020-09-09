@@ -1,25 +1,25 @@
 {
-  "name": "yebool",
+  "name": "espresso-iisojs",
   "version": "1.0.2",
   "description": "Implementation of Espresso-II method for heuristic minimization of single output boolean functions",
   "type": "module",
-  "main": "dist/yebool.cjs",
+  "main": "dist/espresso-iisojs.cjs",
   "exports": {
     ".": {
-      "import": "./dist/yebool.mjs",
-      "require": "./dist/yebool.cjs"
+      "import": "./dist/espresso-iisojs.mjs",
+      "require": "./dist/espresso-iisojs.cjs"
     },
     "./jsbi": {
-      "import": "./dist/yebool-jsbi.mjs",
-      "require": "./dist/yebool-jsbi.cjs"
+      "import": "./dist/espresso-iisojs-jsbi.mjs",
+      "require": "./dist/espresso-iisojs-jsbi.cjs"
     },
     "./index.d.ts": "./index.d.ts"
   },
   "files": [
-    "dist/yebool.mjs",
-    "dist/yebool.cjs",
-    "dist/yebool-jsbi.mjs",
-    "dist/yebool-jsbi.cjs",
+    "dist/espresso-iisojs.mjs",
+    "dist/espresso-iisojs.cjs",
+    "dist/espresso-iisojs-jsbi.mjs",
+    "dist/espresso-iisojs-jsbi.cjs",
     "index.d.ts"
   ],
   "scripts": {
@@ -32,7 +32,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/genieacs/yebool.git"
+    "url": "git+https://github.com/genieacs/espresso-iisojs.git"
   },
   "keywords": [
     "logic",
@@ -41,9 +41,9 @@
   "author": "Zaid Abdulla <zaid@genieacs.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/genieacs/yebool/issues"
+    "url": "https://github.com/genieacs/espresso-iisojs/issues"
   },
-  "homepage": "https://github.com/genieacs/yebool#readme",
+  "homepage": "https://github.com/genieacs/espresso-iisojs#readme",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^8.1.0",
     "@rollup/plugin-typescript": "^5.0.0",

@@ -1,4 +1,4 @@
-# yebool
+# Espresso-IISOJS
 
 This is an implementation of
 [Espresso-II](https://en.wikipedia.org/wiki/Espresso_heuristic_logic_minimizer)
@@ -30,7 +30,7 @@ left-shifted by 1. For example, the clause `-1 2 -3` in DIMACS format would be
 # Quick start
 
 ```javascript
-import { espresso } from "yebool";
+import { espresso } from "espresso-iisojs";
 
 // A'BC'D' + AB'C'D' + AB'CD' + AB'CD + ABC'D' + ABCD
 const original = [
