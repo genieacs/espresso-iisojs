@@ -15,9 +15,9 @@ for (let i = 0; i <= MAX_LITERALS; ++i) {
   BIGINT_INDEXC.push(BI.not(b));
 }
 
-export const BIGINT_ODD = BIGINT_INDEX.filter(
-  (b, i) => i % 2 === 0
-).reduce((acc, cur) => BI.or(acc, cur));
+export const BIGINT_ODD = BIGINT_INDEX.filter((b, i) => i % 2 === 0).reduce(
+  (acc, cur) => BI.or(acc, cur)
+);
 
 export function bitIndices(bits: BI.bigint): number[] {
   const res: number[] = [];

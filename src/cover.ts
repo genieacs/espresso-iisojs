@@ -3,9 +3,9 @@ import Cube from "./cube";
 import { BIGINT_0, BIGINT_INDEX } from "./common";
 
 export default class Cover {
-  private readonly _cubes: Cube[];
-  private readonly _count: number[];
-  private _bigint: BI.bigint;
+  private declare readonly _cubes: Cube[];
+  private declare readonly _count: number[];
+  private declare _bigint: BI.bigint;
 
   private constructor(cubes: Cube[], count: number[], bigint: BI.bigint) {
     this._cubes = cubes;

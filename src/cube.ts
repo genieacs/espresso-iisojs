@@ -2,9 +2,9 @@ import * as BI from "./bigint";
 import { BIGINT_0, BIGINT_INDEX, BIGINT_32 } from "./common";
 
 export default class Cube {
-  private readonly _bigint: BI.bigint;
-  private readonly _set: Set<number>;
-  private readonly _hash: number;
+  private declare readonly _bigint: BI.bigint;
+  private declare readonly _set: Set<number>;
+  private declare readonly _hash: number;
 
   private constructor(bigint: BI.bigint, set: Set<number>, hash: number) {
     this._bigint = bigint;
