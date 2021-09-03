@@ -2,23 +2,14 @@
   "name": "espresso-iisojs",
   "version": "1.0.3",
   "description": "Implementation of Espresso-II method for heuristic minimization of single output boolean functions",
-  "main": "dist/espresso-iisojs.cjs",
+  "main": "./index.cjs",
   "exports": {
-    ".": {
-      "import": "./dist/espresso-iisojs.mjs",
-      "require": "./dist/espresso-iisojs.cjs"
-    },
-    "./jsbi": {
-      "import": "./dist/espresso-iisojs-jsbi.mjs",
-      "require": "./dist/espresso-iisojs-jsbi.cjs"
-    },
-    "./index.d.ts": "./index.d.ts"
+    "import": "./index.mjs",
+    "require": "./index.cjs"
   },
   "files": [
-    "dist/espresso-iisojs.mjs",
-    "dist/espresso-iisojs.cjs",
-    "dist/espresso-iisojs-jsbi.mjs",
-    "dist/espresso-iisojs-jsbi.cjs",
+    "index.mjs",
+    "index.cjs",
     "index.d.ts"
   ],
   "scripts": {
@@ -55,8 +46,5 @@
     "rollup": "^2.26.11",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.2"
-  },
-  "optionalDependencies": {
-    "jsbi": "^3.1.3"
   }
 }
