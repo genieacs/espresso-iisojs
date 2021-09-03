@@ -33,12 +33,12 @@ function EXPAND1(
   );
   blockingMatrix = blockingMatrix.filter((c) => c.size);
   let coveringMatrix = onSet.map(
-    (c) => new Set(bitIndices(BI.and(cubeInv, c.bigint)))
+    (c) =>
+      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint))))
   );
   coveringMatrix = coveringMatrix.filter((c) => c.size);
 
-  const toRaise: Set<number> = new Set();
-  for (const s of cube.set) toRaise.add(s ^ 1);
+  const toRaise: Set<number> = new Set(cube.set);
 
   const count: number[] = [];
   for (let i = Math.max(...toRaise); i >= 0; --i) count.push(0);
@@ -47,21 +47,21 @@ function EXPAND1(
   while (coveringMatrix.length && blockingMatrix.length) {
     const essential: Set<number> = new Set();
     for (const b of blockingMatrix)
-      if (b.size === 1) essential.add(...((b as unknown) as [number]));
+      if (b.size === 1) essential.add(b.values().next().value);
 
     if (essential.size) {
       for (const e of essential) {
-        toRaise.delete(e);
+        toRaise.delete(e ^ 1);
         blockingMatrix = blockingMatrix.filter((b) => !b.has(e));
-        coveringMatrix = coveringMatrix.filter((c) => !c.has(e));
+        coveringMatrix = coveringMatrix.filter((c) => !c.has(e ^ 1));
       }
       const inessentialColumns = new Set(toRaise);
       for (const b of blockingMatrix)
-        for (const i of b) inessentialColumns.delete(i);
+        for (const i of b) inessentialColumns.delete(i ^ 1);
 
       for (const i of inessentialColumns) {
         toRaise.delete(i);
-        cube = cube.raise(i ^ 1);
+        cube = cube.raise(i);
         coveringMatrix = coveringMatrix.filter(
           (c) => !(c.delete(i) && !c.size)
         );
@@ -71,24 +71,24 @@ function EXPAND1(
 
     const feasible: Set<number> = new Set();
     for (const c of coveringMatrix)
-      if (c.size === 1) feasible.add(...((c as unknown) as [number]));
+      if (c.size === 1) feasible.add(c.values().next().value);
 
     if (feasible.size) {
       let cnt = 0;
       let raise = -1;
       for (const r of feasible) {
-        if (count[r] > cnt && canRaise(r ^ 1, cube.set)) {
+        if (count[r] > cnt && canRaise(r, cube.set)) {
           cnt = count[r];
           raise = r;
         }
       }
       if (raise >= 0) {
         toRaise.delete(raise);
-        cube = cube.raise(raise ^ 1);
+        cube = cube.raise(raise);
         coveringMatrix = coveringMatrix.filter(
           (c) => !(c.delete(raise) && !c.size)
         );
-        for (const b of blockingMatrix) b.delete(raise);
+        for (const b of blockingMatrix) b.delete(raise ^ 1);
         continue;
       }
     }
@@ -96,7 +96,7 @@ function EXPAND1(
     let cnt = 0;
     let raise = -1;
     for (const r of toRaise) {
-      if (count[r] > cnt && canRaise(r ^ 1, cube.set)) {
+      if (count[r] > cnt && canRaise(r, cube.set)) {
         cnt = count[r];
         raise = r;
       }
@@ -108,18 +108,17 @@ function EXPAND1(
     }
 
     toRaise.delete(raise);
-    cube = cube.raise(raise ^ 1);
+    cube = cube.raise(raise);
     for (const c of coveringMatrix) c.delete(raise);
-    for (const b of blockingMatrix) b.delete(raise);
+    for (const b of blockingMatrix) b.delete(raise ^ 1);
   }
 
   if (blockingMatrix.length) {
     const MINLOW = MINUCOV(blockingMatrix);
-    for (const m of MINLOW) toRaise.delete(m);
+    for (const m of MINLOW) toRaise.delete(m ^ 1);
   }
 
-  for (const t of toRaise)
-    if (canRaise(t ^ 1, cube.set)) cube = cube.raise(t ^ 1);
+  for (const t of toRaise) if (canRaise(t, cube.set)) cube = cube.raise(t);
 
   return cube;
 }
@@ -130,21 +129,21 @@ function EXPAND1_PRESTO(
   cover: Cover,
   canRaise: CanRaiseCallback
 ): Cube {
-  const cubeInv = invBi(cube.bigint);
   let coveringMatrix = onSet.map(
-    (c) => new Set(bitIndices(BI.and(cubeInv, c.bigint)))
+    (c) =>
+      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint))))
   );
   coveringMatrix = coveringMatrix.filter((c) => c.size);
 
-  const toRaise = [...cube.set].map((i) => i ^ 1);
+  const toRaise = [...cube.set];
   const count: number[] = [];
   for (let i = Math.max(...toRaise); i >= 0; --i) count.push(0);
   for (const c of coveringMatrix) for (const i of c) ++count[i];
 
   while (toRaise.length) {
-    const feasible = new Set();
+    const feasible: Set<number> = new Set();
     for (const c of coveringMatrix)
-      if (c.size === 1) feasible.add(...((c as unknown) as [number]));
+      if (c.size === 1) feasible.add(c.values().next().value);
 
     toRaise.sort(
       (a, b) => +feasible.has(a) - +feasible.has(b) || count[a] - count[b]
@@ -153,11 +152,11 @@ function EXPAND1_PRESTO(
     const cantRaise = [];
     while (toRaise.length) {
       const r = toRaise.pop() as number;
-      if (!canRaise(r ^ 1, cube.set)) {
+      if (!canRaise(r, cube.set)) {
         cantRaise.unshift(r);
         continue;
       }
-      const nc = cube.raise(r ^ 1);
+      const nc = cube.raise(r);
       if (!COVERS(cover, nc)) {
         coveringMatrix = coveringMatrix.filter((c) => !c.has(r));
         toRaise.push(...cantRaise);
