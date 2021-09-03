@@ -24,8 +24,8 @@ Also included are the following utility functions:
 A formula is represented as an array of arrays of numbers. Literals are
 represented as unsigned numbers where the least significant bit denotes the
 polarity of the literal, and the remaining bits are the literal number
-left-shifted by 1. For example, the clause `-1 2 -3` in DIMACS format would be
-`[2, 5, 6]`.
+(zero-based) left-shifted by 1. For example, the clause `-1 2 -3` in DIMACS
+format becomes `[0, 3, 4]`.
 
 # Quick start
 
@@ -34,24 +34,24 @@ import { espresso } from "espresso-iisojs";
 
 // A'BC'D' + AB'C'D' + AB'CD' + AB'CD + ABC'D' + ABCD
 const original = [
-  [2, 5, 8, 16],
-  [3, 4, 8, 16],
-  [3, 4, 9, 16],
-  [3, 4, 9, 17],
-  [3, 5, 8, 16],
-  [3, 5, 9, 17],
+  [0, 3, 4, 8],
+  [1, 2, 4, 8],
+  [1, 2, 5, 8],
+  [1, 2, 5, 9],
+  [1, 3, 4, 8],
+  [1, 3, 5, 9],
 ];
 
 // The don't-care terms: AB'C'D and ABCD'
 const dcSet = [
-  [3, 4, 8, 17],
-  [3, 5, 9, 16],
+  [1, 2, 4, 9],
+  [1, 3, 5, 8],
 ];
 
 const minimized = espresso(original, dcSet);
 
-// Should print: [ [ 5, 8, 16 ], [ 3, 9 ], [ 3, 16 ] ]
-// which is the representation of BC'D' + AC + AD'
+// Should print: [ [ 3, 4, 8 ], [ 1, 5 ], [ 1, 2 ] ]
+// which is the representation of BC'D' + AC + AB'
 // which is a minimized form of the original formula
 console.log(minimized);
 ```
