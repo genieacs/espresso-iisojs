@@ -21,6 +21,11 @@ function COVERS(cover: Cover, cube: Cube): boolean {
   return tautology(cover, invBi(cube.bigint));
 }
 
+// Bias towards 1s and lower indices
+function bias(a: number, b: number): number {
+  return (a % 2) - (b % 2) || b - a;
+}
+
 function EXPAND1(
   cube: Cube,
   onSet: Cube[],
@@ -38,7 +43,7 @@ function EXPAND1(
   );
   coveringMatrix = coveringMatrix.filter((c) => c.size);
 
-  const toRaise: Set<number> = new Set(cube.set);
+  const toRaise: Set<number> = new Set([...cube.set].sort(bias));
 
   const count: number[] = [];
   for (let i = Math.max(...toRaise); i >= 0; --i) count.push(0);
@@ -76,7 +81,7 @@ function EXPAND1(
     if (feasible.size) {
       let cnt = 0;
       let raise = -1;
-      for (const r of feasible) {
+      for (const r of [...feasible].sort(bias)) {
         if (count[r] > cnt && canRaise(r, cube.set)) {
           cnt = count[r];
           raise = r;
@@ -146,7 +151,8 @@ function EXPAND1_PRESTO(
       if (c.size === 1) feasible.add(c.values().next().value);
 
     toRaise.sort(
-      (a, b) => +feasible.has(a) - +feasible.has(b) || count[a] - count[b]
+      (a, b) =>
+        +feasible.has(a) - +feasible.has(b) || count[a] - count[b] || bias(b, a)
     );
 
     const cantRaise = [];
