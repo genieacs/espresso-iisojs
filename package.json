@@ -1,6 +1,6 @@
 {
   "name": "espresso-iisojs",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Implementation of Espresso-II method for heuristic minimization of single output boolean functions",
   "main": "./index.cjs",
   "exports": {
