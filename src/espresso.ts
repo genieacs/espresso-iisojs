@@ -625,7 +625,6 @@ function SCCC(cover: Cover, lit: BI.bigint, free: BI.bigint): BI.bigint {
   let binatenessMin = 0;
   let sparseness = 0;
   const freeIdx = bitIndicesOdd(free);
-  const elim: Set<number> = new Set();
   for (const f of freeIdx) {
     const count0 = cover.count(f);
     const count1 = cover.count(f + 1);
@@ -639,21 +638,14 @@ function SCCC(cover: Cover, lit: BI.bigint, free: BI.bigint): BI.bigint {
           binatenessMin = min;
         }
       }
-    } else {
-      elim.add(f);
-      if (count0) cover = cover.filter((c) => !c.set.has(f));
-      else cover = cover.filter((c) => !c.set.has(f + 1));
     }
     sparseness = Math.max(sparseness, count);
   }
 
   if (binate === -1) return lit;
 
-  if (sparseness * 3 < cover.cubes.length && freeIdx.length - elim.size > 8) {
-    const covers = componentReduction(
-      cover.cubes,
-      freeIdx.filter((f) => !elim.has(f))
-    );
+  if (sparseness * 3 < cover.cubes.length && freeIdx.length > 8) {
+    const covers = componentReduction(cover.cubes, freeIdx);
     let res = BIGINT_0C;
     if (covers.length > 1) {
       for (const cov of covers)
