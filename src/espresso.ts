@@ -13,6 +13,7 @@ import {
   bitIndicesOdd,
   componentReduction,
   BIGINT_0C,
+  MAX_LITERALS,
 } from "./common";
 
 type CanRaiseCallback = (idx: number, set: Set<number>) => boolean;
@@ -751,19 +752,22 @@ export default function espresso(
     dcSet = [...dcSet, ...essentialPrimes];
   }
 
-  let cost = COST(onSet);
+  // Never return the original cover to guarantee result guided by canRaise
+  let cost = onSet.length * MAX_LITERALS;
+
   for (;;) {
     let onSet2 = REDUCE(onSet, dcSet, primes);
     onSet2 = EXPAND(onSet2, dcSet, offSet, primes, canRaise);
     onSet2 = IRREDUNDANT_COVER(onSet2, dcSet);
     let cost2 = COST(onSet2);
+    if (cost2 <= cost) onSet = onSet2;
     if (cost2 >= cost) {
       onSet2 = LAST_GASP(onSet, dcSet, canRaise, offSet);
       cost2 = COST(onSet2);
+      if (cost2 <= cost) onSet = onSet2;
       if (cost2 >= cost) break;
     }
     cost = cost2;
-    onSet = onSet2;
   }
 
   return [...essentialPrimes, ...onSet];
