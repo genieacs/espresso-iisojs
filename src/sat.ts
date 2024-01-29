@@ -14,7 +14,7 @@ import {
 export default function sat(
   cover: Cover,
   lit = BIGINT_0,
-  free = BI.and(cover.bigint, BI.not(BI.or(lit, invBi(lit))))
+  free = BI.and(cover.bigint, BI.not(BI.or(lit, invBi(lit)))),
 ): boolean {
   let repeat = false;
   let contradiction = false;
@@ -76,7 +76,7 @@ export default function sat(
   if (sparseness * 3 < cover.cubes.length && freeIdx.length - elim.size > 8) {
     const covers = componentReduction(
       cover.cubes,
-      freeIdx.filter((f) => !elim.has(f))
+      freeIdx.filter((f) => !elim.has(f)),
     );
     if (covers.length > 1) {
       for (const c of covers) if (!sat(Cover.from(c), lit, free)) return false;
@@ -88,7 +88,7 @@ export default function sat(
     sat(
       cover,
       BI.or(lit, BIGINT_INDEX[binate]),
-      BI.xor(free, BIGINT_INDEX[binate + 1])
+      BI.xor(free, BIGINT_INDEX[binate + 1]),
     )
   )
     return true;
@@ -96,6 +96,6 @@ export default function sat(
   return sat(
     cover,
     BI.or(lit, BIGINT_INDEX[binate + 1]),
-    BI.xor(free, BIGINT_INDEX[binate])
+    BI.xor(free, BIGINT_INDEX[binate]),
   );
 }

@@ -31,16 +31,16 @@ function EXPAND1(
   cube: Cube,
   onSet: Cube[],
   offSet: Cube[],
-  canRaise: CanRaiseCallback
+  canRaise: CanRaiseCallback,
 ): Cube {
   const cubeInv = invBi(cube.bigint);
   let blockingMatrix = offSet.map(
-    (c) => new Set(bitIndices(BI.and(cubeInv, c.bigint)))
+    (c) => new Set(bitIndices(BI.and(cubeInv, c.bigint))),
   );
   blockingMatrix = blockingMatrix.filter((c) => c.size);
   let coveringMatrix = onSet.map(
     (c) =>
-      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint))))
+      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint)))),
   );
   coveringMatrix = coveringMatrix.filter((c) => c.size);
 
@@ -69,7 +69,7 @@ function EXPAND1(
         toRaise.delete(i);
         cube = cube.raise(i);
         coveringMatrix = coveringMatrix.filter(
-          (c) => !(c.delete(i) && !c.size)
+          (c) => !(c.delete(i) && !c.size),
         );
       }
       if (!blockingMatrix.length || !coveringMatrix.length) break;
@@ -92,7 +92,7 @@ function EXPAND1(
         toRaise.delete(raise);
         cube = cube.raise(raise);
         coveringMatrix = coveringMatrix.filter(
-          (c) => !(c.delete(raise) && !c.size)
+          (c) => !(c.delete(raise) && !c.size),
         );
         for (const b of blockingMatrix) b.delete(raise ^ 1);
         continue;
@@ -133,11 +133,11 @@ function EXPAND1_PRESTO(
   cube: Cube,
   onSet: Cube[],
   cover: Cover,
-  canRaise: CanRaiseCallback
+  canRaise: CanRaiseCallback,
 ): Cube {
   let coveringMatrix = onSet.map(
     (c) =>
-      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint))))
+      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint)))),
   );
   coveringMatrix = coveringMatrix.filter((c) => c.size);
 
@@ -153,7 +153,9 @@ function EXPAND1_PRESTO(
 
     toRaise.sort(
       (a, b) =>
-        +feasible.has(a) - +feasible.has(b) || count[a] - count[b] || bias(b, a)
+        +feasible.has(a) - +feasible.has(b) ||
+        count[a] - count[b] ||
+        bias(b, a),
     );
 
     const cantRaise = [];
@@ -184,7 +186,7 @@ function EXPAND(
   dcSet: Cube[],
   offSet: Cube[] | undefined,
   primes: WeakSet<Cube>,
-  canRaise: CanRaiseCallback
+  canRaise: CanRaiseCallback,
 ): Cube[] {
   if (!onSet.length) return onSet;
   onSet = onSet.slice();
@@ -200,7 +202,7 @@ function EXPAND(
             cube,
             onSet,
             Cover.from([...onSet, ...dcSet]),
-            canRaise
+            canRaise,
           );
     }
     onSet = onSet.filter((o) => !cube.covers(o));
@@ -259,7 +261,7 @@ function MAXCLIQ(covers: Set<number>[]): Set<number>[] {
   keys.sort(
     (a, b) =>
       (neighbors.get(b) as Set<number>).size -
-      (neighbors.get(a) as Set<number>).size
+      (neighbors.get(a) as Set<number>).size,
   );
 
   let solution: number[] = [];
@@ -272,7 +274,7 @@ function MAXCLIQ(covers: Set<number>[]): Set<number>[] {
       if (R.length >= solution.length) {
         const w = R.reduce(
           (acc, cur) => acc + (neighbors.get(cur) as Set<number>).size,
-          0
+          0,
         );
         if (w > solutionWeight || R.length > solution.length) {
           solution = R;
@@ -305,7 +307,7 @@ function MAXCLIQ(covers: Set<number>[]): Set<number>[] {
 
 function WEED(covers: Set<number>[], cover: Set<number>): Set<number> {
   let points: Set<number>[] = covers.map(
-    (m) => new Set([...m].filter((x) => cover.has(x)))
+    (m) => new Set([...m].filter((x) => cover.has(x))),
   );
   const essential: Set<number> = new Set();
 
@@ -339,7 +341,7 @@ function WEED(covers: Set<number>[], cover: Set<number>): Set<number> {
     }
 
     const eliminate = Array.from(candidates).reduce((acc, cur) =>
-      cur[1].size < acc[1].size ? cur : acc
+      cur[1].size < acc[1].size ? cur : acc,
     )[0];
     for (const point of points) point.delete(eliminate);
   }
@@ -364,7 +366,7 @@ function MINUCOV(covers: Set<number>[]): Set<number> {
       }
     }
     const [v, set] = Array.from(freq).reduce((acc, cur) =>
-      cur[1].size > acc[1].size ? cur : acc
+      cur[1].size > acc[1].size ? cur : acc,
     );
     remaining = remaining.filter((m) => !set.has(m));
     res.add(v);
@@ -381,7 +383,7 @@ function LTAUT1(
   cover: Cover,
   index: WeakMap<Cube, number>,
   lit: BI.bigint,
-  free: BI.bigint
+  free: BI.bigint,
 ): Set<number>[] {
   let repeat = false;
   let dc = false;
@@ -449,7 +451,7 @@ function LTAUT1(
   if (sparseness * 3 < cover.cubes.length && freeIdx.length - elim.size > 8) {
     const covers = componentReduction(
       cover.cubes,
-      freeIdx.filter((f) => !elim.has(f))
+      freeIdx.filter((f) => !elim.has(f)),
     );
     if (covers.length > 1) {
       let res: Set<number>[] = [new Set(S)];
@@ -470,13 +472,13 @@ function LTAUT1(
     cover,
     index,
     BI.or(lit, BIGINT_INDEX[binate]),
-    BI.xor(free, BIGINT_INDEX[binate + 1])
+    BI.xor(free, BIGINT_INDEX[binate + 1]),
   );
   let res2 = LTAUT1(
     cover,
     index,
     BI.or(lit, BIGINT_INDEX[binate + 1]),
-    BI.xor(free, BIGINT_INDEX[binate])
+    BI.xor(free, BIGINT_INDEX[binate]),
   );
 
   const rem1: Set<Set<number>> = new Set();
@@ -582,7 +584,7 @@ function ESSENTIAL_PRIMES(onSet: Cube[], dcSet: Cube[]): Cube[] {
 function CUBE_ORDER(cubes: Cube[]): void {
   if (cubes.length <= 1) return;
   const seed = cubes.reduce((acc, cur) =>
-    cur.set.size <= acc.set.size ? cur : acc
+    cur.set.size <= acc.set.size ? cur : acc,
   );
   cubes.sort((a, b) => {
     const pc1 = popcount(BI.and(a.bigint, seed.bigint));
@@ -658,13 +660,13 @@ function SCCC(cover: Cover, lit: BI.bigint, free: BI.bigint): BI.bigint {
   const res1 = SCCC(
     cover,
     BI.or(lit, BIGINT_INDEX[binate]),
-    BI.xor(free, BIGINT_INDEX[binate + 1])
+    BI.xor(free, BIGINT_INDEX[binate + 1]),
   );
 
   const res2 = SCCC(
     cover,
     BI.or(lit, BIGINT_INDEX[binate + 1]),
-    BI.xor(free, BIGINT_INDEX[binate])
+    BI.xor(free, BIGINT_INDEX[binate]),
   );
   return BI.and(res1, res2);
 }
@@ -677,7 +679,7 @@ function REDUCE(onSet: Cube[], dcSet: Cube[], primes: WeakSet<Cube>): Cube[] {
     const cubeInv = invBi(cube.bigint);
     const cubeMask = BI.or(cube.bigint, cubeInv);
     const cov = [...onSet, ...dcSet].filter((c) =>
-      BI.eq(BI.and(cubeInv, c.bigint), BIGINT_0)
+      BI.eq(BI.and(cubeInv, c.bigint), BIGINT_0),
     );
     const sccc = SCCC(Cover.from(cov), cubeInv, BI.not(cubeMask));
     if (BI.gte(sccc, BIGINT_0)) {
@@ -699,7 +701,7 @@ function MAXIMUM_REDUCTION(onSet: Cube[], dcSet: Cube[]): Cube[] {
     const cubeInv = invBi(cube.bigint);
     const cubeMask = BI.or(cube.bigint, cubeInv);
     const cov = [...onSet, ...dcSet].filter((c) =>
-      BI.eq(BI.and(cubeInv, c.bigint), BIGINT_0)
+      BI.eq(BI.and(cubeInv, c.bigint), BIGINT_0),
     );
     const sccc = SCCC(Cover.from(cov), cubeInv, BI.not(cubeMask));
     if (BI.ne(sccc, cubeInv) && BI.gte(sccc, BIGINT_0))
@@ -713,7 +715,7 @@ function LAST_GASP(
   onSet: Cube[],
   dcSet: Cube[],
   canRaise: CanRaiseCallback,
-  offSet?: Cube[]
+  offSet?: Cube[],
 ): Cube[] {
   const reduced = MAXIMUM_REDUCTION(onSet, dcSet);
   const newCubes: Cube[] = [];
@@ -740,7 +742,7 @@ export default function espresso(
   onSet: Cube[],
   dcSet: Cube[],
   offSet?: Cube[],
-  canRaise: CanRaiseCallback = () => true
+  canRaise: CanRaiseCallback = () => true,
 ): Cube[] {
   if (!onSet.length) return onSet;
   const primes: WeakSet<Cube> = new WeakSet();

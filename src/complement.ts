@@ -17,7 +17,7 @@ import Cube from "./cube";
 export default function complement(
   cover: Cover,
   lit = BIGINT_0,
-  free = cover.bigint
+  free = cover.bigint,
 ): Cube[] {
   let repeat = false;
   let taut = false;
@@ -75,7 +75,7 @@ export default function complement(
     } else if (count === cover.cubes.length) {
       elim.add(f);
       res.push(
-        Cube.fromBigInt(invBi(BI.or(lit, BIGINT_INDEX[count0 ? f : f + 1])))
+        Cube.fromBigInt(invBi(BI.or(lit, BIGINT_INDEX[count0 ? f : f + 1]))),
       );
       free = BI.xor(free, BIGINT_INDEX[count0 ? f : f + 1]);
     }
@@ -85,7 +85,7 @@ export default function complement(
   if (sparseness * 3 < cover.cubes.length && freeIdx.length - elim.size > 8) {
     const covers = componentReduction(
       cover.cubes,
-      freeIdx.filter((f) => !elim.has(f))
+      freeIdx.filter((f) => !elim.has(f)),
     );
     if (covers.length > 1) {
       const cov = Cover.from(covers.pop() as Cube[]);
@@ -113,12 +113,12 @@ export default function complement(
   const res1 = complement(
     cover,
     BI.or(lit, BIGINT_INDEX[binate]),
-    BI.xor(free, BIGINT_INDEX[binate + 1])
+    BI.xor(free, BIGINT_INDEX[binate + 1]),
   );
   let res2 = complement(
     cover,
     BI.or(lit, BIGINT_INDEX[binate + 1]),
-    BI.xor(free, BIGINT_INDEX[binate])
+    BI.xor(free, BIGINT_INDEX[binate]),
   );
 
   const hashMask = 3 << binate;
@@ -143,7 +143,7 @@ function complementUnate(
   cover: Cover,
   res: Cube[],
   lit: BI.bigint,
-  free: BI.bigint
+  free: BI.bigint,
 ): void {
   let repeat = false;
   let tautology = false;

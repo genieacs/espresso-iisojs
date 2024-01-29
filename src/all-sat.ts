@@ -18,7 +18,7 @@ export default function allSat(
   mask = cover.bigint,
   lit = BIGINT_0,
   aux: Set<number> = new Set(bitIndices(BI.and(cover.bigint, BI.not(mask)))),
-  free = cover.bigint
+  free = cover.bigint,
 ): Cube[] {
   let repeat = false;
   let contradiction = false;
@@ -80,8 +80,8 @@ export default function allSat(
       elim.add(f);
       res.push(
         Cube.fromBigInt(
-          BI.and(mask, BI.or(lit, BIGINT_INDEX[count0 ? f : f + 1]))
-        )
+          BI.and(mask, BI.or(lit, BIGINT_INDEX[count0 ? f : f + 1])),
+        ),
       );
       free = BI.xor(free, BIGINT_INDEX[count0 ? f : f + 1]);
     }
@@ -91,7 +91,7 @@ export default function allSat(
   if (sparseness * 3 < cover.cubes.length && freeIdx.length - elim.size > 8) {
     const covers = componentReduction(
       cover.cubes,
-      freeIdx.filter((f) => !elim.has(f))
+      freeIdx.filter((f) => !elim.has(f)),
     );
     if (covers.length > 1) {
       const cov = Cover.from(covers.pop() as Cube[]);
@@ -121,7 +121,7 @@ export default function allSat(
     mask,
     BI.or(lit, BIGINT_INDEX[binate]),
     aux,
-    BI.xor(free, BIGINT_INDEX[binate + 1])
+    BI.xor(free, BIGINT_INDEX[binate + 1]),
   );
 
   let res2 = allSat(
@@ -129,7 +129,7 @@ export default function allSat(
     mask,
     BI.or(lit, BIGINT_INDEX[binate + 1]),
     aux,
-    BI.xor(free, BIGINT_INDEX[binate])
+    BI.xor(free, BIGINT_INDEX[binate]),
   );
 
   if (aux.has(binate)) {
@@ -168,7 +168,7 @@ function allSatUnate(
   res: Cube[],
   mask: BI.bigint,
   lit: BI.bigint,
-  free: BI.bigint
+  free: BI.bigint,
 ): void {
   let repeat = false;
   let tautology = false;

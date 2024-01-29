@@ -44,7 +44,7 @@ interface Options {
 export function espresso(
   onSet: number[][],
   dcSet: number[][] = [],
-  options: Options = {}
+  options: Options = {},
 ): number[][] {
   const _onSet = toCubes(onSet);
   const _dcSet = toCubes(dcSet);

@@ -16,7 +16,7 @@ for (let i = 0; i <= MAX_LITERALS; ++i) {
 }
 
 export const BIGINT_ODD = BIGINT_INDEX.filter((b, i) => i % 2 === 0).reduce(
-  (acc, cur) => BI.or(acc, cur)
+  (acc, cur) => BI.or(acc, cur),
 );
 
 export function bitIndices(bits: BI.bigint): number[] {
@@ -59,7 +59,7 @@ export function bitIndicesOdd(bits: BI.bigint): number[] {
 
 export function componentReduction(
   cubes: Cube[],
-  cols: Iterable<number>
+  cols: Iterable<number>,
 ): Cube[][] {
   const map: Map<number, Set<Cube>> = new Map();
   for (const i of cols) {
@@ -92,7 +92,7 @@ export function componentReduction(
 export function invBi(n: BI.bigint): BI.bigint {
   return BI.or(
     BI.lshift(BI.and(n, BIGINT_ODD), BIGINT_1),
-    BI.and(BI.rshift(n, BIGINT_1), BIGINT_ODD)
+    BI.and(BI.rshift(n, BIGINT_1), BIGINT_ODD),
   );
 }
 

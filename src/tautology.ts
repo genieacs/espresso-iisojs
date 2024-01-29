@@ -14,7 +14,7 @@ import {
 export default function tautology(
   cover: Cover,
   lit = BIGINT_0,
-  free = BI.and(cover.bigint, BI.not(BI.or(lit, invBi(lit))))
+  free = BI.and(cover.bigint, BI.not(BI.or(lit, invBi(lit)))),
 ): boolean {
   let repeat = false;
   let taut = false;
@@ -76,7 +76,7 @@ export default function tautology(
   if (sparseness * 3 < cover.cubes.length && freeIdx.length - elim.size > 8) {
     const covers = componentReduction(
       cover.cubes,
-      freeIdx.filter((f) => !elim.has(f))
+      freeIdx.filter((f) => !elim.has(f)),
     );
     if (covers.length > 1) {
       for (const cov of covers)
@@ -90,7 +90,7 @@ export default function tautology(
     !tautology(
       cover,
       BI.or(lit, BIGINT_INDEX[binate]),
-      BI.xor(free, BIGINT_INDEX[binate + 1])
+      BI.xor(free, BIGINT_INDEX[binate + 1]),
     )
   )
     return false;
@@ -98,6 +98,6 @@ export default function tautology(
   return tautology(
     cover,
     BI.or(lit, BIGINT_INDEX[binate + 1]),
-    BI.xor(free, BIGINT_INDEX[binate])
+    BI.xor(free, BIGINT_INDEX[binate]),
   );
 }
