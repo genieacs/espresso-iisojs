@@ -1,6 +1,6 @@
-import * as BI from "./bigint";
-import Cube from "./cube";
-import { BIGINT_0, BIGINT_INDEX } from "./common";
+import * as BI from "./bigint.ts";
+import Cube from "./cube.ts";
+import { BIGINT_0, BIGINT_INDEX } from "./common.ts";
 
 export default class Cover {
   private declare readonly _cubes: Cube[];

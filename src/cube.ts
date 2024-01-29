@@ -1,5 +1,5 @@
-import * as BI from "./bigint";
-import { BIGINT_0, BIGINT_INDEX, BIGINT_32 } from "./common";
+import * as BI from "./bigint.ts";
+import { BIGINT_0, BIGINT_INDEX, BIGINT_32 } from "./common.ts";
 
 export default class Cube {
   private declare readonly _bigint: BI.bigint;

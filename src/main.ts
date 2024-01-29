@@ -1,10 +1,10 @@
-import Cube from "./cube";
-import Cover from "./cover";
-import _sat from "./sat";
-import _allSat from "./all-sat";
-import _tautology from "./tautology";
-import _complement from "./complement";
-import _espresso from "./espresso";
+import Cube from "./cube.ts";
+import Cover from "./cover.ts";
+import _sat from "./sat.ts";
+import _allSat from "./all-sat.ts";
+import _tautology from "./tautology.ts";
+import _complement from "./complement.ts";
+import _espresso from "./espresso.ts";
 
 function toCubes(input: number[][]): Cube[] {
   return input.map((i) => Cube.from(i));

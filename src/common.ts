@@ -1,5 +1,5 @@
-import * as BI from "./bigint";
-import Cube from "./cube";
+import * as BI from "./bigint.ts";
+import Cube from "./cube.ts";
 
 export const MAX_LITERALS = 512;
 export const BIGINT_0 = BI.BigInt(0);

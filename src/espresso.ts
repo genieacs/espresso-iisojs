@@ -1,7 +1,7 @@
-import * as BI from "./bigint";
-import Cube from "./cube";
-import tautology from "./tautology";
-import Cover from "./cover";
+import * as BI from "./bigint.ts";
+import Cube from "./cube.ts";
+import tautology from "./tautology.ts";
+import Cover from "./cover.ts";
 import {
   bitIndices,
   BIGINT_INDEX,
@@ -14,7 +14,7 @@ import {
   componentReduction,
   BIGINT_0C,
   MAX_LITERALS,
-} from "./common";
+} from "./common.ts";
 
 type CanRaiseCallback = (idx: number, set: Set<number>) => boolean;
 

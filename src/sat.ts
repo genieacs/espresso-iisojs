@@ -1,5 +1,5 @@
-import * as BI from "./bigint";
-import Cover from "./cover";
+import * as BI from "./bigint.ts";
+import Cover from "./cover.ts";
 import {
   BIGINT_0,
   invBi,
@@ -9,7 +9,7 @@ import {
   componentReduction,
   BIGINT_ODD,
   BIGINT_1,
-} from "./common";
+} from "./common.ts";
 
 export default function sat(
   cover: Cover,

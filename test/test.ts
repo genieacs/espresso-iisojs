@@ -1,11 +1,11 @@
-import { execSync } from "child_process";
-import Cube from "../src/cube";
-import complement from "../src/complement";
-import Cover from "../src/cover";
-import allSat from "../src/all-sat";
-import tautology from "../src/tautology";
-import sat from "../src/sat";
-import espresso from "../src/espresso";
+import { execSync } from "node:child_process";
+import Cube from "../src/cube.ts";
+import complement from "../src/complement.ts";
+import Cover from "../src/cover.ts";
+import allSat from "../src/all-sat.ts";
+import tautology from "../src/tautology.ts";
+import sat from "../src/sat.ts";
+import espresso from "../src/espresso.ts";
 
 const smtSolvers: { [name: string]: (string: string) => string } = {
   "yices-smt2": (input: string) => {

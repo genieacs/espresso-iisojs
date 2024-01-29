@@ -1,5 +1,5 @@
-import * as BI from "./bigint";
-import Cover from "./cover";
+import * as BI from "./bigint.ts";
+import Cover from "./cover.ts";
 import {
   BIGINT_0,
   BIGINT_INDEX,
@@ -10,8 +10,8 @@ import {
   componentReduction,
   BIGINT_ODD,
   BIGINT_1,
-} from "./common";
-import Cube from "./cube";
+} from "./common.ts";
+import Cube from "./cube.ts";
 
 export default function allSat(
   cover: Cover,
