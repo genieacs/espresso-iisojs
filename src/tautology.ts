@@ -80,9 +80,8 @@ export default function tautology(
     );
     if (covers.length > 1) {
       for (const cov of covers)
-        if (!tautology(Cover.from(cov), lit, free)) return false;
-
-      return true;
+        if (tautology(Cover.from(cov), lit, free)) return true;
+      return false;
     }
   }
 

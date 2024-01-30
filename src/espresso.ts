@@ -649,11 +649,10 @@ function SCCC(cover: Cover, lit: BI.bigint, free: BI.bigint): BI.bigint {
 
   if (sparseness * 3 < cover.cubes.length && freeIdx.length > 8) {
     const covers = componentReduction(cover.cubes, freeIdx);
-    let res = BIGINT_0C;
     if (covers.length > 1) {
       for (const cov of covers)
-        res = BI.and(res, SCCC(Cover.from(cov), lit, free));
-      return res;
+        lit = BI.or(lit, SCCC(Cover.from(cov), lit, free));
+      return lit;
     }
   }
 
