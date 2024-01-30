@@ -17,8 +17,8 @@
   "type": "module",
   "scripts": {
     "test": "esbuild --bundle --platform=node --target=node18 --packages=external --sourcemap=inline test/test.ts | node --enable-source-maps",
-    "lint-eslint": "eslint --fix \"src/*.ts\"",
-    "lint-prettier": "prettier --prose-wrap always --write \"src/*.ts\" README.md",
+    "lint-eslint": "eslint --fix \"src/*.ts\" \"test/*.ts\"",
+    "lint-prettier": "prettier --prose-wrap always --write \"src/*.ts\" \"test/*.ts\" README.md",
     "lint-tsc": "tsc --noEmit",
     "lint": "npm run lint-eslint && npm run lint-prettier && npm run lint-tsc",
     "build": "esbuild src/main.ts --bundle --platform=node --target=node12.13.0 --outfile=index.cjs && esbuild src/main.ts --bundle --platform=neutral --outfile=index.mjs"

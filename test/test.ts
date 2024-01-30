@@ -1,4 +1,8 @@
+import test from "node:test";
+import assert from "node:assert";
 import { execSync } from "node:child_process";
+import { readFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
 import Cube from "../src/cube.ts";
 import complement from "../src/complement.ts";
 import Cover from "../src/cover.ts";
@@ -8,16 +12,16 @@ import sat from "../src/sat.ts";
 import espresso from "../src/espresso.ts";
 
 const smtSolvers: { [name: string]: (string: string) => string } = {
-  "yices-smt2": (input: string) => {
-    const res = execSync("yices-smt2", { input });
-    return res.toString().trim();
-  },
-  cvc4: (input: string) => {
-    const res = execSync(`cvc4 --lang smt2`, { input });
+  cvc5: (input: string) => {
+    const res = execSync("cvc5 --lang smt2", { input });
     return res.toString().trim();
   },
   z3: (input: string) => {
-    const res = execSync(`z3 -smt2 -in`, { input });
+    const res = execSync("z3 -smt2 -in", { input });
+    return res.toString().trim();
+  },
+  "yices-smt2": (input: string) => {
+    const res = execSync("yices-smt2", { input });
     return res.toString().trim();
   },
 };
@@ -43,7 +47,7 @@ function espressoRef(onSet: Cube[], dcSet: Cube[]): Cube[] {
   for (const o of onSet) maxVar = Math.max(maxVar, ...o.set);
   for (const o of dcSet) maxVar = Math.max(maxVar, ...o.set);
   const varCount = Math.trunc(maxVar / 2) + 1;
-  const lines = [`.i ${varCount}`, ".o 1"];
+  const lines = [`.i ${varCount}`, ".o 1", `.p ${onSet.length + dcSet.length}`];
   const filler = "-".repeat(varCount);
   for (const c of onSet)
     lines.push((c.toString() + filler).slice(0, varCount) + " 1");
@@ -58,45 +62,28 @@ function espressoRef(onSet: Cube[], dcSet: Cube[]): Cube[] {
     .map((l) => Cube.parse(l.slice(0, varCount)));
 }
 
-let _seed = 0;
-function seed(s: number): void {
-  _seed = s % 2147483647;
-  if (_seed <= 0) _seed += 2147483646;
-}
-function random(): number {
-  _seed = (_seed * 16807) % 2147483647;
-  return _seed / 2147483646;
-}
+function parsePlaFile(content: string): { onSet: Cube[]; dcSet: Cube[] } {
+  const lines = content.split("\n").map((l) => l.trim());
 
-function randomCube(maxVar: number, cardinality: number): Cube {
-  const set: Set<number> = new Set();
-  while (set.size < cardinality) {
-    const i = Math.trunc(random() * maxVar * 2);
-    if (!set.has(i) && !set.has(i ^ 1)) set.add(i);
+  const onSet: Cube[] = [];
+  const dcSet: Cube[] = [];
+
+  for (const line of lines) {
+    if (!line || line.startsWith("#")) continue;
+    if (line.startsWith(".e")) break;
+    if (line.startsWith(".")) continue;
+
+    const [input, output] = line.split(/[\s|]/);
+    if (output === "0") continue;
+    else if (output === "1") onSet.push(Cube.parse(input));
+    else if (output === "-") dcSet.push(Cube.parse(input));
+    else throw new Error("Only single-output PLAs are supported");
   }
-  return Cube.from(set);
+
+  return { onSet, dcSet };
 }
 
-function randomCover(count: number, minCrd: number, maxCrd: number): Cube[] {
-  const res: Cube[] = [];
-  const crdRange = maxCrd - minCrd;
-  for (let i = 0; i < count; ++i) {
-    const crd = minCrd + Math.trunc(random() * crdRange);
-    res.push(randomCube(maxCrd, crd));
-  }
-  return res;
-}
-
-seed(0);
-const SAMPLES: Cube[][] = [];
-for (let vars = 1; vars < 11; ++vars) {
-  for (let i = 0; i < vars * 2; ++i) {
-    const minterms = Math.trunc(2 ** vars / 2);
-    SAMPLES.push(randomCover(minterms, Math.ceil(vars * 0.7), vars));
-  }
-}
-
-function cubesToSmtSop(terms: Cube[]): string {
+function smtSop(terms: Cube[]): string {
   const strs = terms.map((term) => {
     if (!term.set.size) return "true";
     const arr = Array.from(term.set).map((i) => {
@@ -109,7 +96,7 @@ function cubesToSmtSop(terms: Cube[]): string {
   return `(or ${strs.join(" ")})`;
 }
 
-function cubesToSmtPos(terms: Cube[]): string {
+function smtPos(terms: Cube[]): string {
   const strs = terms.map((term) => {
     if (!term.set.size) return "false";
     const arr = Array.from(term.set).map((i) => {
@@ -122,102 +109,79 @@ function cubesToSmtPos(terms: Cube[]): string {
   return `(and ${strs.join(" ")})`;
 }
 
-function isEquivalent(smtStr1: string, smtStr2: string): boolean {
+function smtAssert(expression: string): boolean {
+  const MAX_VARS = 130;
   const lines = ["(set-logic QF_UF)"];
-  for (let i = 0; i < 32; ++i) lines.push(`(declare-const v${i} Bool)`);
-  lines.push(`(assert (xor ${smtStr1} ${smtStr2}))`);
+  for (let i = 0; i < MAX_VARS; ++i) lines.push(`(declare-const v${i} Bool)`);
+  lines.push(`(assert ${expression})`);
   lines.push("(check-sat)");
   lines.push("(exit)");
-  return smtSolver(lines.join("\n")) === "unsat";
+  const res = smtSolver(lines.join("\n"));
+  if (res === "sat") return true;
+  if (res === "unsat") return false;
+  throw new Error("Unexpected result from SMT solver: " + res);
 }
-
-function isTautology(smtStr: string): boolean {
-  const lines = ["(set-logic QF_UF)"];
-  for (let i = 0; i < 32; ++i) lines.push(`(declare-const v${i} Bool)`);
-  lines.push(`(assert (not ${smtStr}))`);
-  lines.push("(check-sat)");
-  lines.push("(exit)");
-  return smtSolver(lines.join("\n")) === "unsat";
-}
-
-function isSatisfiable(smtStr: string): boolean {
-  const lines = ["(set-logic QF_UF)"];
-  for (let i = 0; i < 32; ++i) lines.push(`(declare-const v${i} Bool)`);
-  lines.push(`(assert ${smtStr})`);
-  lines.push("(check-sat)");
-  lines.push("(exit)");
-  return smtSolver(lines.join("\n")) === "sat";
-}
-
-// sat
-process.stdout.write("sat: ");
-for (const [i, pos] of SAMPLES.entries()) {
-  const cov = [...pos, ...(SAMPLES[i + 1] || []), ...(SAMPLES[i + 2] || [])];
-  const s = sat(Cover.from(cov));
-  const smtStr = cubesToSmtPos(cov);
-  if (isSatisfiable(smtStr) !== s) throw new Error("sat failed");
-}
-process.stdout.write("pass\n");
-
-// allSat
-process.stdout.write("allSet: ");
-for (const pos of SAMPLES) {
-  const sop = allSat(Cover.from(pos));
-  const smtStr1 = cubesToSmtPos(pos);
-  const smtStr2 = cubesToSmtSop(sop);
-  if (!isEquivalent(`${smtStr1}`, smtStr2)) throw new Error("allSat failed");
-}
-process.stdout.write("pass\n");
-
-// tautology
-process.stdout.write("tautology: ");
-for (const [i, sop] of SAMPLES.entries()) {
-  const cov = [...sop, ...(SAMPLES[i + 1] || []), ...(SAMPLES[i + 2] || [])];
-  const taut = tautology(Cover.from(cov));
-  const smtStr = cubesToSmtSop(cov);
-  if (isTautology(smtStr) !== taut) throw new Error("tautology failed");
-}
-process.stdout.write("pass\n");
-
-// complement
-process.stdout.write("complement: ");
-for (const sample of SAMPLES) {
-  const comp = complement(Cover.from(sample));
-  const smtStr1 = cubesToSmtSop(sample);
-  const smtStr2 = cubesToSmtSop(comp);
-  if (!isEquivalent(`(not ${smtStr1})`, smtStr2))
-    throw new Error("complement failed");
-}
-process.stdout.write("pass\n");
 
 function COST(cover: Cube[]): number {
   return cover.reduce((a, c) => a + c.set.size, 0);
 }
 
-// espresso
-process.stdout.write("espresso: ");
-let totalCost = 0;
-let totalCostPresto = 0;
-let totalCostRef = 0;
-for (const [idx, onSet] of SAMPLES.entries()) {
-  const dcSet = idx ? SAMPLES[idx - 1] : [];
-  const offSet = complement(Cover.from([...onSet, ...dcSet]));
-  const min = espresso(onSet, dcSet, offSet);
-  const minPresto = espresso(onSet, dcSet);
-  const minRef = espressoRef(onSet, dcSet);
-  const cost = COST(min);
-  const costPresto = COST(minPresto);
-  const costRef = COST(minRef);
-  totalCost += cost;
-  totalCostPresto += costPresto;
-  totalCostRef += costRef;
-  const str = cubesToSmtSop([...min, ...dcSet]);
-  const strPresto = cubesToSmtSop([...minPresto, ...dcSet]);
-  const strRef = cubesToSmtSop([...onSet, ...dcSet]);
-  if (!isEquivalent(str, strRef) || !isEquivalent(strPresto, strRef))
-    throw new Error("espresso correctness test failed");
+async function runTests(dir: string): Promise<void> {
+  const examples = await readdir(dir);
+  for (const filename of examples) {
+    await test(filename, async (t) => {
+      const content = await readFile(join(dir, filename), "utf-8");
+      const { onSet, dcSet } = parsePlaFile(content);
+      const cover = Cover.from([...onSet, ...dcSet]);
+      const t1 = Date.now();
+      const offSet = complement(Cover.from([...onSet, ...dcSet]));
+      const min = espresso(onSet, dcSet, offSet);
+      const t2 = Date.now();
+      const minPresto = espresso(onSet, dcSet);
+      const t3 = Date.now();
+      const minRef = espressoRef(onSet, dcSet);
+      const t4 = Date.now();
+
+      assert.equal(sat(cover), smtAssert(smtPos(cover.cubes)));
+
+      assert(
+        !smtAssert(`(xor ${smtSop(allSat(cover))} ${smtPos(cover.cubes)})`),
+      );
+
+      assert.equal(
+        tautology(cover),
+        !smtAssert(`(not ${smtSop(cover.cubes)})`),
+      );
+
+      assert(!smtAssert(`(= ${smtSop(offSet)} ${smtSop(cover.cubes)})`));
+
+      assert(
+        !smtAssert(
+          `(xor ${smtSop([...min, ...dcSet])} ${smtSop(cover.cubes)})`,
+        ),
+      );
+
+      assert(
+        !smtAssert(
+          `(xor ${smtSop([...minPresto, ...dcSet])} ${smtSop(cover.cubes)})`,
+        ),
+      );
+
+      const time = t2 - t1;
+      const timePresto = t3 - t2;
+      const timeRef = t4 - t3;
+      const cost = COST(min);
+      const costRef = COST(minRef);
+      const costPresto = COST(minPresto);
+
+      t.diagnostic(
+        `cost: ${cost}/${costPresto}/${costRef}, time: ${time}/${timePresto}/${timeRef}`,
+      );
+    });
+  }
 }
-const costThreshold = Math.trunc(totalCostRef * 1.03);
-if (totalCost > costThreshold || totalCostPresto > costThreshold)
-  throw new Error("espresso cardinality test failed");
-process.stdout.write("pass\n");
+
+runTests("test/examples").catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
