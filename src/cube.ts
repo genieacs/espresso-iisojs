@@ -24,6 +24,11 @@ export default class Cube {
     return this._hash;
   }
 
+  get empty(): boolean {
+    for (const s of this._set) if (this._set.has(s ^ 1)) return true;
+    return false;
+  }
+
   raise(n: number): Cube {
     if (!this._set.has(n)) return this;
     const b = BI.xor(this._bigint, BIGINT_INDEX[n]);

@@ -46,8 +46,8 @@ export function espresso(
   dcSet: number[][] = [],
   options: Options = {},
 ): number[][] {
-  const _onSet = toCubes(onSet);
-  const _dcSet = toCubes(dcSet);
+  const _onSet = toCubes(onSet).filter((c) => !c.empty);
+  const _dcSet = toCubes(dcSet).filter((c) => !c.empty);
   const _offSet = options.computeOffSet
     ? _complement(Cover.from([..._onSet, ..._dcSet]))
     : undefined;
