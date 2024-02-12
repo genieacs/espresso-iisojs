@@ -17,6 +17,7 @@ import {
 } from "./common.ts";
 
 type CanRaiseCallback = (idx: number, set: Set<number>) => boolean;
+type CanLowerCallback = (idx: number, set: Set<number>) => boolean;
 
 function COVERS(cover: Cover, cube: Cube): boolean {
   return tautology(cover, invBi(cube.bigint));
@@ -670,7 +671,12 @@ function SCCC(cover: Cover, lit: BI.bigint, free: BI.bigint): BI.bigint {
   return BI.and(res1, res2);
 }
 
-function REDUCE(onSet: Cube[], dcSet: Cube[], primes: WeakSet<Cube>): Cube[] {
+function REDUCE(
+  onSet: Cube[],
+  dcSet: Cube[],
+  primes: WeakSet<Cube>,
+  canLower: CanLowerCallback,
+): Cube[] {
   onSet = onSet.slice();
   CUBE_ORDER(onSet);
   for (let i = onSet.length; i > 0; --i) {
@@ -686,15 +692,29 @@ function REDUCE(onSet: Cube[], dcSet: Cube[], primes: WeakSet<Cube>): Cube[] {
         onSet.push(cube);
         primes.add(cube);
       } else {
-        onSet.push(Cube.fromBigInt(invBi(sccc)));
+        let reduced = cube;
+        for (let toLower = bitIndices(sccc); toLower.length; ) {
+          const toLowerRetry: number[] = [];
+          for (const t of toLower) {
+            if (canLower(t ^ 1, reduced.set)) reduced = reduced.lower(t ^ 1);
+            else toLowerRetry.push(t);
+          }
+          if (toLowerRetry.length === toLower.length) break;
+          toLower = toLowerRetry;
+        }
+        onSet.push(reduced);
       }
     }
   }
   return onSet;
 }
 
-function MAXIMUM_REDUCTION(onSet: Cube[], dcSet: Cube[]): Cube[] {
-  const reduced: Cube[] = [];
+function MAXIMUM_REDUCTION(
+  onSet: Cube[],
+  dcSet: Cube[],
+  canLower: CanLowerCallback,
+): Cube[] {
+  const reducedCubes: Cube[] = [];
   for (let i = onSet.length; i > 0; --i) {
     const cube = onSet.shift() as Cube;
     const cubeInv = invBi(cube.bigint);
@@ -703,20 +723,32 @@ function MAXIMUM_REDUCTION(onSet: Cube[], dcSet: Cube[]): Cube[] {
       BI.eq(BI.and(cubeInv, c.bigint), BIGINT_0),
     );
     const sccc = SCCC(Cover.from(cov), cubeInv, BI.not(cubeMask));
-    if (BI.ne(sccc, cubeInv) && BI.gte(sccc, BIGINT_0))
-      reduced.push(Cube.fromBigInt(invBi(sccc)));
+    if (BI.ne(sccc, cubeInv) && BI.gte(sccc, BIGINT_0)) {
+      let reduced = cube;
+      for (let toLower = bitIndices(sccc); toLower.length; ) {
+        const toLowerRetry: number[] = [];
+        for (const t of toLower) {
+          if (canLower(t ^ 1, reduced.set)) reduced = reduced.lower(t ^ 1);
+          else toLowerRetry.push(t);
+        }
+        if (toLowerRetry.length === toLower.length) break;
+        toLower = toLowerRetry;
+      }
+      reducedCubes.push(reduced);
+    }
     onSet.push(cube);
   }
-  return reduced;
+  return reducedCubes;
 }
 
 function LAST_GASP(
   onSet: Cube[],
   dcSet: Cube[],
+  offSet: Cube[] | undefined,
   canRaise: CanRaiseCallback,
-  offSet?: Cube[],
+  canLower: CanLowerCallback,
 ): Cube[] {
-  const reduced = MAXIMUM_REDUCTION(onSet, dcSet);
+  const reduced = MAXIMUM_REDUCTION(onSet, dcSet, canLower);
   const newCubes: Cube[] = [];
   const cover = offSet ? null : Cover.from([...onSet, ...dcSet]);
   for (let i = reduced.length; i > 0; --i) {
@@ -742,6 +774,7 @@ export default function espresso(
   dcSet: Cube[],
   offSet?: Cube[],
   canRaise: CanRaiseCallback = () => true,
+  canLower: CanLowerCallback = () => true,
 ): Cube[] {
   if (!onSet.length) return onSet;
   const primes: WeakSet<Cube> = new WeakSet();
@@ -757,13 +790,13 @@ export default function espresso(
   let cost = onSet.length * MAX_LITERALS;
 
   for (;;) {
-    let onSet2 = REDUCE(onSet, dcSet, primes);
+    let onSet2 = REDUCE(onSet, dcSet, primes, canLower);
     onSet2 = EXPAND(onSet2, dcSet, offSet, primes, canRaise);
     onSet2 = IRREDUNDANT_COVER(onSet2, dcSet);
     let cost2 = COST(onSet2);
     if (cost2 <= cost) onSet = onSet2;
     if (cost2 >= cost) {
-      onSet2 = LAST_GASP(onSet, dcSet, canRaise, offSet);
+      onSet2 = LAST_GASP(onSet, dcSet, offSet, canRaise, canLower);
       cost2 = COST(onSet2);
       if (cost2 <= cost) onSet = onSet2;
       if (cost2 >= cost) break;

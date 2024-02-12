@@ -1,6 +1,7 @@
 interface Options {
   computeOffSet?: boolean;
   canRaise?: (idx: number, set: Set<number>) => boolean;
+  canLower?: (idx: number, set: Set<number>) => boolean;
 }
 
 export declare function sat(cnf: number[][]): boolean;

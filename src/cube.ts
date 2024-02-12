@@ -38,6 +38,14 @@ export default class Cube {
     return new Cube(b, s, h);
   }
 
+  lower(n: number): Cube {
+    if (this._set.has(n)) return this;
+    const b = BI.or(this._bigint, BIGINT_INDEX[n]);
+    const s = new Set([...this._set, n]);
+    const h = this._hash ^ (1 << n);
+    return new Cube(b, s, h);
+  }
+
   covers(c: Cube): boolean {
     return (
       this.set.size <= c.set.size &&

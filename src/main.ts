@@ -39,6 +39,7 @@ export function complement(dnf: number[][]): number[][] {
 interface Options {
   computeOffSet?: boolean;
   canRaise?: (idx: number, set: Set<number>) => boolean;
+  canLower?: (idx: number, set: Set<number>) => boolean;
 }
 
 export function espresso(
@@ -51,6 +52,12 @@ export function espresso(
   const _offSet = options.computeOffSet
     ? _complement(Cover.from([..._onSet, ..._dcSet]))
     : undefined;
-  const res = _espresso(_onSet, _dcSet, _offSet, options.canRaise);
+  const res = _espresso(
+    _onSet,
+    _dcSet,
+    _offSet,
+    options.canRaise,
+    options.canLower,
+  );
   return fromCubes(res);
 }
