@@ -18,14 +18,10 @@ import {
 
 type CanRaiseCallback = (idx: number, set: Set<number>) => boolean;
 type CanLowerCallback = (idx: number, set: Set<number>) => boolean;
+type BiasCallback = (a: number, b: number) => number;
 
 function COVERS(cover: Cover, cube: Cube): boolean {
   return tautology(cover, invBi(cube.bigint));
-}
-
-// Bias towards 1s and lower indices
-function bias(a: number, b: number): number {
-  return (a % 2) - (b % 2) || b - a;
 }
 
 function EXPAND1(
@@ -33,6 +29,7 @@ function EXPAND1(
   onSet: Cube[],
   offSet: Cube[],
   canRaise: CanRaiseCallback,
+  bias: BiasCallback,
 ): Cube {
   const cubeInv = invBi(cube.bigint);
   let blockingMatrix = offSet.map(
@@ -135,6 +132,7 @@ function EXPAND1_PRESTO(
   onSet: Cube[],
   cover: Cover,
   canRaise: CanRaiseCallback,
+  bias: BiasCallback,
 ): Cube {
   let coveringMatrix = onSet.map(
     (c) =>
@@ -188,6 +186,7 @@ function EXPAND(
   offSet: Cube[] | undefined,
   primes: WeakSet<Cube>,
   canRaise: CanRaiseCallback,
+  bias: BiasCallback,
 ): Cube[] {
   if (!onSet.length) return onSet;
   onSet = onSet.slice();
@@ -198,12 +197,13 @@ function EXPAND(
     let cube = onSet[0];
     if (!primes.has(cube)) {
       cube = offSet
-        ? EXPAND1(cube, onSet, offSet, canRaise)
+        ? EXPAND1(cube, onSet, offSet, canRaise, bias)
         : EXPAND1_PRESTO(
             cube,
             onSet,
             Cover.from([...onSet, ...dcSet]),
             canRaise,
+            bias,
           );
     }
     onSet = onSet.filter((o) => !cube.covers(o));
@@ -747,6 +747,7 @@ function LAST_GASP(
   offSet: Cube[] | undefined,
   canRaise: CanRaiseCallback,
   canLower: CanLowerCallback,
+  bias: BiasCallback,
 ): Cube[] {
   const reduced = MAXIMUM_REDUCTION(onSet, dcSet, canLower);
   const newCubes: Cube[] = [];
@@ -754,8 +755,8 @@ function LAST_GASP(
   for (let i = reduced.length; i > 0; --i) {
     const cube = reduced.shift() as Cube;
     const expanded = offSet
-      ? EXPAND1(cube, reduced, offSet, canRaise)
-      : EXPAND1_PRESTO(cube, reduced, cover as Cover, canRaise);
+      ? EXPAND1(cube, reduced, offSet, canRaise, bias)
+      : EXPAND1_PRESTO(cube, reduced, cover as Cover, canRaise, bias);
 
     for (const c of reduced) if (expanded.covers(c)) newCubes.push(expanded);
 
@@ -775,10 +776,11 @@ export default function espresso(
   offSet?: Cube[],
   canRaise: CanRaiseCallback = () => true,
   canLower: CanLowerCallback = () => true,
+  bias: BiasCallback = () => 0,
 ): Cube[] {
   if (!onSet.length) return onSet;
   const primes: WeakSet<Cube> = new WeakSet();
-  onSet = EXPAND(onSet, dcSet, offSet, primes, canRaise);
+  onSet = EXPAND(onSet, dcSet, offSet, primes, canRaise, bias);
   onSet = IRREDUNDANT_COVER(onSet, dcSet);
   const essentialPrimes = ESSENTIAL_PRIMES(onSet, dcSet);
   if (essentialPrimes.length) {
@@ -791,12 +793,12 @@ export default function espresso(
 
   for (;;) {
     let onSet2 = REDUCE(onSet, dcSet, primes, canLower);
-    onSet2 = EXPAND(onSet2, dcSet, offSet, primes, canRaise);
+    onSet2 = EXPAND(onSet2, dcSet, offSet, primes, canRaise, bias);
     onSet2 = IRREDUNDANT_COVER(onSet2, dcSet);
     let cost2 = COST(onSet2);
     if (cost2 <= cost) onSet = onSet2;
     if (cost2 >= cost) {
-      onSet2 = LAST_GASP(onSet, dcSet, offSet, canRaise, canLower);
+      onSet2 = LAST_GASP(onSet, dcSet, offSet, canRaise, canLower, bias);
       cost2 = COST(onSet2);
       if (cost2 <= cost) onSet = onSet2;
       if (cost2 >= cost) break;

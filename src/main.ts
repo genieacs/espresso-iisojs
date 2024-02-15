@@ -40,6 +40,7 @@ interface Options {
   computeOffSet?: boolean;
   canRaise?: (idx: number, set: Set<number>) => boolean;
   canLower?: (idx: number, set: Set<number>) => boolean;
+  bias?: (a: number, b: number) => number;
 }
 
 export function espresso(
@@ -58,6 +59,7 @@ export function espresso(
     _offSet,
     options.canRaise,
     options.canLower,
+    options.bias,
   );
   return fromCubes(res);
 }
