@@ -11,6 +11,7 @@ import {
   componentReduction,
   BIGINT_ODD,
   BIGINT_1,
+  mergeSplit,
 } from "./common.ts";
 import Cube from "./cube.ts";
 
@@ -121,20 +122,7 @@ export default function complement(
     BI.xor(free, BIGINT_INDEX[binate]),
   );
 
-  const hashMask = 3 << binate;
-  const hashMaskBi = BI.or(BIGINT_INDEX[binate], BIGINT_INDEX[binate + 1]);
-  const remove: Set<Cube> = new Set();
-  outer: for (const [i, r1] of res1.entries()) {
-    const h = r1.hash ^ hashMask;
-    for (const r2 of res2) {
-      if (r2.hash === h && BI.eq(BI.xor(r1.bigint, r2.bigint), hashMaskBi)) {
-        res1[i] = Cube.fromBigInt(BI.and(r1.bigint, r2.bigint));
-        remove.add(r2);
-        continue outer;
-      }
-    }
-  }
-  if (remove.size) res2 = res2.filter((r) => !remove.has(r));
+  res2 = mergeSplit(res1, res2, binate);
 
   return [...res, ...res1, ...res2];
 }

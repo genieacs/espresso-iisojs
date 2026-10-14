@@ -89,6 +89,42 @@ export function componentReduction(
   return [...map.values()].map((c) => [...c]);
 }
 
+// Merges the results of splitting on `binate`: a cube of res2 that equals one
+// of res1 except for the split variable's literal is dropped, and the res1
+// cube loses that literal. If the variable is projected out of the results,
+// the halves can only share whole cubes, and those are dropped from res2.
+// Indexing res2 by hash keeps this linear; each res1 cube still gets the
+// first match in res2 order.
+export function mergeSplit(
+  res1: Cube[],
+  res2: Cube[],
+  binate: number,
+  projected = false,
+): Cube[] {
+  const byHash: Map<number, Cube[]> = new Map();
+  for (const r2 of res2) {
+    const l = byHash.get(r2.hash);
+    if (l) l.push(r2);
+    else byHash.set(r2.hash, [r2]);
+  }
+  const hashMask = projected ? 0 : 3 << binate;
+  const mask = projected
+    ? BIGINT_0
+    : BI.or(BIGINT_INDEX[binate], BIGINT_INDEX[binate + 1]);
+  const remove: Set<Cube> = new Set();
+  for (let i = 0; i < res1.length; ++i) {
+    const r1 = res1[i];
+    for (const r2 of byHash.get(r1.hash ^ hashMask) ?? []) {
+      if (BI.eq(BI.xor(r1.bigint, r2.bigint), mask)) {
+        if (!projected) res1[i] = Cube.fromBigInt(BI.and(r1.bigint, r2.bigint));
+        remove.add(r2);
+        break;
+      }
+    }
+  }
+  return remove.size ? res2.filter((r) => !remove.has(r)) : res2;
+}
+
 export function invBi(n: BI.bigint): BI.bigint {
   return BI.or(
     BI.lshift(BI.and(n, BIGINT_ODD), BIGINT_1),
