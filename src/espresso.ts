@@ -406,7 +406,7 @@ function LTAUT1(
   lit: BI.bigint,
   free: BI.bigint,
 ): Set<number>[] {
-  let repeat = false;
+  let repeat: boolean;
   let dc = false;
   const S: number[] = [];
   do {
@@ -728,7 +728,7 @@ function REDUCE(
         primes.add(cube);
       } else {
         let reduced = cube;
-        for (let toLower = bitIndices(sccc); toLower.length; ) {
+        for (let toLower = bitIndices(sccc); toLower.length;) {
           const toLowerRetry: number[] = [];
           for (const t of toLower) {
             if (canLower(t ^ 1, reduced)) reduced = reduced.lower(t ^ 1);
@@ -758,7 +758,7 @@ function MAXIMUM_REDUCTION(
     const sccc = SCCC(Cover.from(cov), cubeInv, BI.not(cubeMask));
     if (BI.ne(sccc, cubeInv) && BI.gte(sccc, BIGINT_0)) {
       let reduced = cube;
-      for (let toLower = bitIndices(sccc); toLower.length; ) {
+      for (let toLower = bitIndices(sccc); toLower.length;) {
         const toLowerRetry: number[] = [];
         for (const t of toLower) {
           if (canLower(t ^ 1, reduced)) reduced = reduced.lower(t ^ 1);

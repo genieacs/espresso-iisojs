@@ -20,7 +20,7 @@ export interface Cofactor {
 }
 
 export default class Cover {
-  private declare readonly _cubes: Cube[];
+  declare private readonly _cubes: Cube[];
   // Per-literal occurrence counts and the union of all literals. The
   // recursive algorithms create a cover per cofactor and most of them are
   // never asked for either, so both are computed on first use.

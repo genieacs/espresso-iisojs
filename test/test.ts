@@ -32,7 +32,7 @@ for (const [name, solver] of Object.entries(smtSolvers)) {
     execSync(`${name} --version`, { stdio: [null, null, null] });
     smtSolver = solver;
     break;
-  } catch (err) {
+  } catch {
     // Ignore
   }
 }

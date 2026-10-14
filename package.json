@@ -16,12 +16,12 @@
   ],
   "type": "module",
   "scripts": {
-    "test": "esbuild --bundle --platform=node --target=node18 --packages=external --sourcemap=inline test/test.ts | node --enable-source-maps",
+    "test": "node test/test.ts",
     "lint-eslint": "eslint --fix \"src/*.ts\" \"test/*.ts\"",
     "lint-prettier": "prettier --prose-wrap always --write \"src/*.ts\" \"test/*.ts\" README.md",
     "lint-tsc": "tsc --noEmit",
     "lint": "npm run lint-eslint && npm run lint-prettier && npm run lint-tsc",
-    "build": "esbuild src/main.ts --bundle --platform=node --target=node12.13.0 --outfile=index.cjs && esbuild src/main.ts --bundle --platform=neutral --outfile=index.mjs"
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node12.13.0 --outfile=index.cjs && esbuild src/main.ts --bundle --platform=neutral --target=node12.17 --outfile=index.mjs"
   },
   "repository": {
     "type": "git",
@@ -37,16 +37,19 @@
     "url": "https://github.com/genieacs/espresso-iisojs/issues"
   },
   "homepage": "https://github.com/genieacs/espresso-iisojs#readme",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=26"
+    }
+  },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-typescript": "^11.0.0",
-    "@types/node": "^20.11.20",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "@typescript-eslint/parser": "^7.0.2",
-    "esbuild": "^0.20.1",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "prettier": "^3.2.5",
-    "typescript": "^5.3.3"
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.12.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2"
   }
 }

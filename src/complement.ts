@@ -117,10 +117,10 @@ function complementUnate(
   lit: BI.bigint,
   free: BI.bigint,
 ): void {
-  let repeat = false;
+  let repeat: boolean;
   let tautology = false;
   let largestCubeSize = MAX_LITERALS;
-  let largestCube = BIGINT_0;
+  let largestCube: BI.bigint;
   do {
     largestCubeSize = MAX_LITERALS;
     largestCube = BIGINT_0;

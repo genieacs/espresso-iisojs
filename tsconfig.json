@@ -5,7 +5,10 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "noImplicitReturns": true,
-    "strict": true
+    "strict": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "types": ["node"]
   },
   "include": [
     "src/*.ts",

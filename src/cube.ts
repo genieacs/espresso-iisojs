@@ -2,9 +2,9 @@ import * as BI from "./bigint.ts";
 import { BIGINT_0, BIGINT_INDEX, BIGINT_32, invBi } from "./common.ts";
 
 export default class Cube {
-  private declare readonly _bigint: BI.bigint;
+  declare private readonly _bigint: BI.bigint;
   declare private readonly _lits: number[];
-  private declare readonly _hash: number;
+  declare private readonly _hash: number;
   declare private readonly _lo: number;
   declare private readonly _hi: number;
   declare private readonly _wide: boolean;
