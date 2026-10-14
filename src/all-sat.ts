@@ -13,6 +13,8 @@ import {
 } from "./common.ts";
 import Cube from "./cube.ts";
 
+// Variables outside `mask` (e.g. Tseitin helper variables) are left out of the
+// solutions, which then only cover the variables in `mask`.
 export default function allSat(
   cover: Cover,
   mask = cover.bigint,
@@ -49,6 +51,9 @@ export default function allSat(
 
   if (cover.cubes.length === 1) {
     const l = BI.and(mask, lit);
+    // A projected-out literal can satisfy the clause on its own
+    if (BI.ne(BI.and(free, BI.not(mask)), BIGINT_0))
+      return [Cube.fromBigInt(l)];
     for (const f of bitIndices(BI.and(mask, free)))
       res.push(Cube.fromBigInt(BI.or(l, BIGINT_INDEX[f])));
     return res;
@@ -74,8 +79,9 @@ export default function allSat(
         }
       }
     } else if (aux.has(f)) {
+      // Projected out and pure, so satisfy every clause that holds it
       elim.add(f);
-      free = BI.xor(free, BIGINT_INDEX[count0 ? f : f + 1]);
+      lit = BI.or(lit, BIGINT_INDEX[count0 ? f : f + 1]);
     } else if (count === cover.cubes.length) {
       elim.add(f);
       res.push(
