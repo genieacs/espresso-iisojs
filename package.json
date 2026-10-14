@@ -5,38 +5,53 @@
   "main": "./index.cjs",
   "types": "./index.d.ts",
   "exports": {
-    "import": "./index.mjs",
-    "require": "./index.cjs",
-    "types": "./index.d.ts"
+    "import": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    },
+    "require": {
+      "types": "./index.d.cts",
+      "default": "./index.cjs"
+    }
   },
   "files": [
     "index.mjs",
     "index.cjs",
-    "index.d.ts"
+    "index.d.ts",
+    "index.d.cts"
   ],
   "type": "module",
+  "sideEffects": false,
   "scripts": {
     "test": "node test/test.ts",
     "lint-eslint": "eslint --fix \"src/*.ts\" \"test/*.ts\"",
     "lint-prettier": "prettier --prose-wrap always --write \"src/*.ts\" \"test/*.ts\" README.md",
     "lint-tsc": "tsc --noEmit",
     "lint": "npm run lint-eslint && npm run lint-prettier && npm run lint-tsc",
-    "build": "esbuild src/main.ts --bundle --platform=node --target=node12.13.0 --outfile=index.cjs && esbuild src/main.ts --bundle --platform=neutral --target=node12.17 --outfile=index.mjs"
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node12.13.0 --outfile=index.cjs && esbuild src/main.ts --bundle --platform=neutral --target=node12.17 --outfile=index.mjs && cp index.d.ts index.d.cts",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/genieacs/espresso-iisojs.git"
   },
   "keywords": [
-    "logic",
-    "sat"
+    "logic-minimization",
+    "sat-solver",
+    "tautology"
   ],
-  "author": "Zaid Abdulla <zaid@genieacs.com>",
+  "author": {
+    "name": "GenieACS Inc.",
+    "url": "https://genieacs.com"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/genieacs/espresso-iisojs/issues"
   },
   "homepage": "https://github.com/genieacs/espresso-iisojs#readme",
+  "engines": {
+    "node": ">=12.17"
+  },
   "devEngines": {
     "runtime": {
       "name": "node",
