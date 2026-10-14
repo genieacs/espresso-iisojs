@@ -5,10 +5,7 @@ import {
   invBi,
   BIGINT_INDEX,
   bitIndicesOdd,
-  popcount,
   componentReduction,
-  BIGINT_ODD,
-  BIGINT_1,
 } from "./common.ts";
 
 export default function tautology(
@@ -16,27 +13,13 @@ export default function tautology(
   lit = BIGINT_0,
   free = BI.and(cover.bigint, BI.not(BI.or(lit, invBi(lit)))),
 ): boolean {
-  let repeat = false;
-  let taut = false;
-  do {
-    repeat = false;
-    cover = cover.filter((c) => {
-      if (BI.ne(BI.and(lit, c.bigint), BIGINT_0)) return false;
-      const diff = BI.and(c.bigint, free);
-      const pc = popcount(diff, 2);
-      if (pc === 1) {
-        repeat = true;
-        lit = BI.or(lit, diff);
-        if (BI.eq(BI.and(BIGINT_ODD, diff), BIGINT_0))
-          free = BI.xor(free, BI.rshift(diff, BIGINT_1));
-        else free = BI.xor(free, BI.lshift(diff, BIGINT_1));
-        return false;
-      }
-      if (pc === 0) taut = true;
-      return true;
-    });
-    if (taut) return true;
-  } while (repeat);
+  {
+    const p = cover.propagate(lit, free);
+    if (p.taut) return true;
+    cover = p.cover;
+    lit = p.lit;
+    free = p.free;
+  }
 
   if (cover.cubes.length <= 1) return false;
 

@@ -8,8 +8,6 @@ import {
   MAX_LITERALS,
   popcount,
   componentReduction,
-  BIGINT_ODD,
-  BIGINT_1,
   mergeSplit,
 } from "./common.ts";
 import Cube from "./cube.ts";
@@ -23,27 +21,13 @@ export default function allSat(
   aux: Set<number> = new Set(bitIndices(BI.and(cover.bigint, BI.not(mask)))),
   free = cover.bigint,
 ): Cube[] {
-  let repeat = false;
-  let contradiction = false;
-  do {
-    repeat = false;
-    cover = cover.filter((c) => {
-      if (BI.ne(BI.and(lit, c.bigint), BIGINT_0)) return false;
-      const diff = BI.and(c.bigint, free);
-      const pc = popcount(diff, 2);
-      if (pc === 1) {
-        repeat = true;
-        lit = BI.or(lit, diff);
-        if (BI.eq(BI.and(BIGINT_ODD, diff), BIGINT_0))
-          free = BI.xor(free, BI.rshift(diff, BIGINT_1));
-        else free = BI.xor(free, BI.lshift(diff, BIGINT_1));
-        return false;
-      }
-      if (pc === 0) contradiction = true;
-      return true;
-    });
-    if (contradiction) return [];
-  } while (repeat);
+  {
+    const p = cover.propagate(lit, free);
+    if (p.taut) return [];
+    cover = p.cover;
+    lit = p.lit;
+    free = p.free;
+  }
 
   if (!cover.cubes.length) return [Cube.fromBigInt(BI.and(mask, lit))];
 

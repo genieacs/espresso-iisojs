@@ -6,6 +6,8 @@ export const BIGINT_0 = BI.BigInt(0);
 export const BIGINT_1 = BI.BigInt(1);
 export const BIGINT_0C = BI.not(BIGINT_0);
 export const BIGINT_32 = BI.BigInt(32);
+export const BIGINT_2_32 = BI.lshift(BI.BigInt(1), BIGINT_32);
+export const BIGINT_2_64 = BI.lshift(BIGINT_2_32, BIGINT_32);
 
 export const BIGINT_INDEX: BI.bigint[] = [];
 export const BIGINT_INDEXC: BI.bigint[] = [];
@@ -21,6 +23,19 @@ export const BIGINT_ODD = BIGINT_INDEX.filter((b, i) => i % 2 === 0).reduce(
 
 export function bitIndices(bits: BI.bigint): number[] {
   const res: number[] = [];
+  // Fast path for the common single-word case: skips the asIntN/rshift pair,
+  // each of which allocates a BigInt.
+  if (BI.gte(bits, BIGINT_0) && BI.lt(bits, BIGINT_2_32)) {
+    let b = BI.toNumber(bits) | 0;
+    let i = Math.clz32(b);
+    while (i < 32) {
+      const li = 31 - i;
+      res.push(li);
+      b ^= 1 << li;
+      i = Math.clz32(b);
+    }
+    return res;
+  }
   let offset = 0;
   while (BI.ne(bits, BIGINT_0)) {
     let b = BI.toNumber(BI.asIntN(32, bits));
@@ -40,6 +55,18 @@ export function bitIndices(bits: BI.bigint): number[] {
 export function bitIndicesOdd(bits: BI.bigint): number[] {
   const ODD = 0b1010101010101010101010101010101;
   const res: number[] = [];
+  if (BI.gte(bits, BIGINT_0) && BI.lt(bits, BIGINT_2_32)) {
+    let b = BI.toNumber(bits) | 0;
+    b = (b & ODD) | ((b >> 1) & ODD);
+    let i = Math.clz32(b);
+    while (i < 32) {
+      const li = 31 - i;
+      res.push(li);
+      b ^= 1 << li;
+      i = Math.clz32(b);
+    }
+    return res;
+  }
   let offset = 0;
   while (BI.ne(bits, BIGINT_0)) {
     let b = BI.toNumber(BI.asIntN(32, bits));
@@ -131,6 +158,12 @@ export function invBi(n: BI.bigint): BI.bigint {
     BI.lshift(BI.and(n, BIGINT_ODD), BIGINT_1),
     BI.and(BI.rshift(n, BIGINT_1), BIGINT_ODD),
   );
+}
+
+// The bigint whose first two 32-bit words are `lo` and `hi`
+export function fromWords(lo: number, hi: number): BI.bigint {
+  if (hi === 0) return BI.BigInt(lo >>> 0);
+  return BI.or(BI.BigInt(lo >>> 0), BI.lshift(BI.BigInt(hi >>> 0), BIGINT_32));
 }
 
 export function popcount(n: BI.bigint, max = MAX_LITERALS): number {

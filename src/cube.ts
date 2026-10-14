@@ -5,11 +5,24 @@ export default class Cube {
   private declare readonly _bigint: BI.bigint;
   declare private readonly _lits: number[];
   private declare readonly _hash: number;
+  declare private readonly _lo: number;
+  declare private readonly _hi: number;
+  declare private readonly _wide: boolean;
 
-  private constructor(bigint: BI.bigint, lits: number[], hash: number) {
+  private constructor(
+    bigint: BI.bigint,
+    lits: number[],
+    hash: number,
+    lo: number,
+    hi: number,
+    wide: boolean,
+  ) {
     this._bigint = bigint;
     this._lits = lits;
     this._hash = hash;
+    this._lo = lo;
+    this._hi = hi;
+    this._wide = wide;
   }
 
   get bigint(): BI.bigint {
@@ -28,6 +41,22 @@ export default class Cube {
     return this._hash;
   }
 
+  // The first two 32-bit words of `bigint`, exactly, plus whether anything
+  // lies above them. Together they let callers work in machine integers
+  // whenever a cube is confined to the first 32 variables, which in practice
+  // is nearly always.
+  get lo(): number {
+    return this._lo;
+  }
+
+  get hi(): number {
+    return this._hi;
+  }
+
+  get wide(): boolean {
+    return this._wide;
+  }
+
   // Holds some literal together with its complement
   get empty(): boolean {
     return BI.ne(BI.and(this._bigint, invBi(this._bigint)), BIGINT_0);
@@ -38,7 +67,7 @@ export default class Cube {
     if (idx < 0) return this;
     const lits = this._lits.slice();
     lits.splice(idx, 1);
-    return new Cube(
+    return Cube.make(
       BI.xor(this._bigint, BIGINT_INDEX[n]),
       lits,
       this._hash ^ (1 << n),
@@ -49,7 +78,7 @@ export default class Cube {
     if (this._lits.indexOf(n) >= 0) return this;
     const lits = this._lits.slice();
     lits.push(n);
-    return new Cube(
+    return Cube.make(
       BI.or(this._bigint, BIGINT_INDEX[n]),
       lits,
       this._hash ^ (1 << n),
@@ -59,6 +88,19 @@ export default class Cube {
   covers(c: Cube): boolean {
     if (this._lits.length > c._lits.length) return false;
     return BI.eq(BI.and(this._bigint, c._bigint), this._bigint);
+  }
+
+  private static make(bigint: BI.bigint, lits: number[], hash: number): Cube {
+    let lo = 0;
+    let hi = 0;
+    let wide = false;
+    for (let i = 0; i < lits.length; ++i) {
+      const l = lits[i];
+      if (l < 32) lo |= 1 << l;
+      else if (l < 64) hi |= 1 << (l - 32);
+      else wide = true;
+    }
+    return new Cube(bigint, lits, hash, lo, hi, wide);
   }
 
   static parse(str: string): Cube {
@@ -86,7 +128,7 @@ export default class Cube {
         throw new Error("Invalid cube string");
       }
     }
-    return new Cube(bigint, lits, hash);
+    return Cube.make(bigint, lits, hash);
   }
 
   toString(): string {
@@ -115,17 +157,21 @@ export default class Cube {
       hash ^= 1 << i;
       bigint = BI.or(bigint, BIGINT_INDEX[i]);
     }
-    return new Cube(bigint, l, hash);
+    return Cube.make(bigint, l, hash);
   }
 
   static fromBigInt(bigint: BI.bigint): Cube {
     let hash = 0;
+    let lo = 0;
+    let hi = 0;
     const lits: number[] = [];
     let offset = 0;
     let n = bigint;
     while (BI.ne(n, BIGINT_0)) {
       let b = BI.toNumber(BI.asIntN(32, n));
       hash ^= b;
+      if (offset === 0) lo = b;
+      else if (offset === 32) hi = b;
       n = BI.rshift(n, BIGINT_32);
       let i = Math.clz32(b);
       while (i < 32) {
@@ -136,6 +182,6 @@ export default class Cube {
       }
       offset += 32;
     }
-    return new Cube(bigint, lits, hash);
+    return new Cube(bigint, lits, hash, lo, hi, offset > 64);
   }
 }
