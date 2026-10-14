@@ -1,6 +1,12 @@
 import * as BI from "./bigint.ts";
 import Cube from "./cube.ts";
-import { BIGINT_0, BIGINT_1, BIGINT_INDEX, bitIndices } from "./common.ts";
+import {
+  BIGINT_0,
+  BIGINT_1,
+  BIGINT_INDEX,
+  bitIndices,
+  invBi32,
+} from "./common.ts";
 
 // The blocking and covering matrices of a cube's expansion have the cube's
 // literals as columns, so a row is a mask of columns: a number when the cube
@@ -25,9 +31,22 @@ export default abstract class Columns<R> {
 
   static from(cube: Cube): Columns<unknown> {
     const k = cube.lits.length;
+    if (!cube.wide) {
+      // Column = variable, unless the cube holds both polarities of one
+      const lits: number[] = [];
+      let all = 0;
+      let i = 0;
+      for (; i < k; ++i) {
+        const v = cube.lits[i] >>> 1;
+        if (all & (1 << v)) break;
+        all |= 1 << v;
+        lits[v] = cube.lits[i];
+      }
+      if (i === k) return new WordColumns(cube, lits, all, true);
+    }
     const lits = cube.lits.slice().sort((a, b) => a - b);
     if (k > 32) return new BigColumns(cube, lits);
-    return new WordColumns(cube, lits, k === 32 ? -1 : 2 ** k - 1);
+    return new WordColumns(cube, lits, k === 32 ? -1 : 2 ** k - 1, false);
   }
 
   abstract bit(j: number): R;
@@ -123,8 +142,12 @@ export default abstract class Columns<R> {
 }
 
 class WordColumns extends Columns<number> {
-  constructor(cube: Cube, lits: number[], all: number) {
+  // Columns are variable numbers rather than ranks
+  declare private readonly _byVar: boolean;
+
+  constructor(cube: Cube, lits: number[], all: number, byVar: boolean) {
     super(cube, lits, all, 0);
+    this._byVar = byVar;
   }
 
   bit(j: number): number {
@@ -167,6 +190,32 @@ class WordColumns extends Columns<number> {
     for (let b = row; b !== 0; b &= b - 1) res.push(31 - Math.clz32(b & -b));
     return res;
   }
+
+  // By variable, rows come straight out of the cube words: whatever the
+  // other cubes hold above them can't intersect the cube
+  blockingRows(offSet: Cube[]): number[] {
+    if (!this._byVar) return super.blockingRows(offSet);
+    const lo = invBi32(this._cube.lo);
+    const hi = invBi32(this._cube.hi);
+    const rows: number[] = [];
+    for (const c of offSet) {
+      const row = compress(lo & c.lo) | (compress(hi & c.hi) << 16);
+      if (row) rows.push(row);
+    }
+    return rows;
+  }
+
+  coveringRows(onSet: Cube[]): number[] {
+    if (!this._byVar) return super.coveringRows(onSet);
+    const lo = this._cube.lo;
+    const hi = this._cube.hi;
+    const rows: number[] = [];
+    for (const c of onSet) {
+      const row = compress(lo & ~c.lo) | (compress(hi & ~c.hi) << 16);
+      if (row) rows.push(row);
+    }
+    return rows;
+  }
 }
 
 class BigColumns extends Columns<BI.bigint> {
@@ -201,4 +250,13 @@ class BigColumns extends Columns<BI.bigint> {
   columns(row: BI.bigint): number[] {
     return bitIndices(row);
   }
+}
+
+// Gathers the variable bits of one word (16 literal pairs) into the low 16
+function compress(bits: number): number {
+  let x = (bits | (bits >>> 1)) & 0x55555555;
+  x = (x | (x >>> 1)) & 0x33333333;
+  x = (x | (x >>> 2)) & 0x0f0f0f0f;
+  x = (x | (x >>> 4)) & 0x00ff00ff;
+  return (x | (x >>> 8)) & 0x0000ffff;
 }

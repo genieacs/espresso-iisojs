@@ -160,6 +160,11 @@ export function invBi(n: BI.bigint): BI.bigint {
   );
 }
 
+// invBi() on one 32-bit word
+export function invBi32(n: number): number {
+  return ((n & 0x55555555) << 1) | ((n >>> 1) & 0x55555555);
+}
+
 // The bigint whose first two 32-bit words are `lo` and `hi`
 export function fromWords(lo: number, hi: number): BI.bigint {
   if (hi === 0) return BI.BigInt(lo >>> 0);

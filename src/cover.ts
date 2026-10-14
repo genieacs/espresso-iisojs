@@ -48,13 +48,24 @@ export default class Cover {
 
   get bigint(): BI.bigint {
     if (this._bigint === undefined) {
-      if (this._count === undefined) this.build();
-      const count = this._count as number[];
-      // One BigInt OR per distinct literal rather than one per cube
-      let bigint = BIGINT_0;
-      for (let i = 0; i < count.length; ++i)
-        if (count[i]) bigint = BI.or(bigint, BIGINT_INDEX[i]);
-      this._bigint = bigint;
+      if (this._wide) {
+        if (this._count === undefined) this.build();
+        const count = this._count as number[];
+        // One BigInt OR per distinct literal rather than one per cube
+        let bigint = BIGINT_0;
+        for (let i = 0; i < count.length; ++i)
+          if (count[i]) bigint = BI.or(bigint, BIGINT_INDEX[i]);
+        this._bigint = bigint;
+      } else {
+        // No counts needed for this, and the words make it cheap
+        let lo = 0;
+        let hi = 0;
+        for (const c of this._cubes) {
+          lo |= c.lo;
+          hi |= c.hi;
+        }
+        this._bigint = fromWords(lo, hi);
+      }
     }
     return this._bigint as BI.bigint;
   }

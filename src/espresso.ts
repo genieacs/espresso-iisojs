@@ -15,6 +15,8 @@ import {
   componentReduction,
   BIGINT_0C,
   MAX_LITERALS,
+  invBi32,
+  fromWords,
 } from "./common.ts";
 
 type CanRaiseCallback = (idx: number, cube: Cube) => boolean;
@@ -587,12 +589,26 @@ function ESSENTIAL_PRIMES(onSet: Cube[], dcSet: Cube[]): Cube[] {
     const ess = cover.pop() as Cube;
     const essInv = invBi(ess.bigint);
     const cov: Cube[] = [];
-    for (const cube of cover) {
-      const conflict = BI.and(essInv, cube.bigint);
-      const dist = popcount(conflict, 2);
-      if (dist === 0) cov.push(cube);
-      else if (dist === 1)
-        cov.push(Cube.fromBigInt(BI.xor(cube.bigint, conflict)));
+    if (ess.wide) {
+      for (const cube of cover) {
+        const conflict = BI.and(essInv, cube.bigint);
+        const dist = popcount(conflict, 2);
+        if (dist === 0) cov.push(cube);
+        else if (dist === 1)
+          cov.push(Cube.fromBigInt(BI.xor(cube.bigint, conflict)));
+      }
+    } else {
+      // essInv lies within the first two words, so only they can conflict
+      const invLo = invBi32(ess.lo);
+      const invHi = invBi32(ess.hi);
+      for (const cube of cover) {
+        const lo = invLo & cube.lo;
+        const hi = invHi & cube.hi;
+        if (!(lo | hi)) cov.push(cube);
+        // Exactly one conflicting literal
+        else if (!(lo & (lo - 1)) && !(hi & (hi - 1)) && !(lo && hi))
+          cov.push(Cube.fromBigInt(BI.xor(cube.bigint, fromWords(lo, hi))));
+      }
     }
     if (!tautology(Cover.from(cov), essInv)) res.push(ess);
     cover.unshift(ess);
@@ -673,6 +689,25 @@ function SCCC(cover: Cover, lit: BI.bigint, free: BI.bigint): BI.bigint {
   return BI.and(res1, res2);
 }
 
+// The cubes that intersect `cube`, i.e. don't contradict any of its literals
+function intersecting(cube: Cube, ...sets: Cube[][]): Cube[] {
+  const res: Cube[] = [];
+  if (cube.wide) {
+    const inv = invBi(cube.bigint);
+    for (const set of sets) {
+      for (const c of set)
+        if (BI.eq(BI.and(inv, c.bigint), BIGINT_0)) res.push(c);
+    }
+  } else {
+    // The inverse lies within the first two words, so only they can conflict
+    const lo = invBi32(cube.lo);
+    const hi = invBi32(cube.hi);
+    for (const set of sets)
+      for (const c of set) if (!((lo & c.lo) | (hi & c.hi))) res.push(c);
+  }
+  return res;
+}
+
 function REDUCE(
   onSet: Cube[],
   dcSet: Cube[],
@@ -685,9 +720,7 @@ function REDUCE(
     const cube = onSet.shift() as Cube;
     const cubeInv = invBi(cube.bigint);
     const cubeMask = BI.or(cube.bigint, cubeInv);
-    const cov = [...onSet, ...dcSet].filter((c) =>
-      BI.eq(BI.and(cubeInv, c.bigint), BIGINT_0),
-    );
+    const cov = intersecting(cube, onSet, dcSet);
     const sccc = SCCC(Cover.from(cov), cubeInv, BI.not(cubeMask));
     if (BI.gte(sccc, BIGINT_0)) {
       if (BI.eq(sccc, cubeInv)) {
@@ -721,9 +754,7 @@ function MAXIMUM_REDUCTION(
     const cube = onSet.shift() as Cube;
     const cubeInv = invBi(cube.bigint);
     const cubeMask = BI.or(cube.bigint, cubeInv);
-    const cov = [...onSet, ...dcSet].filter((c) =>
-      BI.eq(BI.and(cubeInv, c.bigint), BIGINT_0),
-    );
+    const cov = intersecting(cube, onSet, dcSet);
     const sccc = SCCC(Cover.from(cov), cubeInv, BI.not(cubeMask));
     if (BI.ne(sccc, cubeInv) && BI.gte(sccc, BIGINT_0)) {
       let reduced = cube;

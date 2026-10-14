@@ -87,6 +87,9 @@ export default class Cube {
 
   covers(c: Cube): boolean {
     if (this._lits.length > c._lits.length) return false;
+    if ((this._lo & ~c._lo) | (this._hi & ~c._hi)) return false;
+    // Nothing above the two words, so they were the whole comparison
+    if (!this._wide) return true;
     return BI.eq(BI.and(this._bigint, c._bigint), this._bigint);
   }
 
