@@ -2,6 +2,7 @@ import * as BI from "./bigint.ts";
 import Cube from "./cube.ts";
 import tautology from "./tautology.ts";
 import Cover from "./cover.ts";
+import Columns from "./columns.ts";
 import {
   bitIndices,
   BIGINT_INDEX,
@@ -16,14 +17,16 @@ import {
   MAX_LITERALS,
 } from "./common.ts";
 
-type CanRaiseCallback = (idx: number, set: Set<number>) => boolean;
-type CanLowerCallback = (idx: number, set: Set<number>) => boolean;
+type CanRaiseCallback = (idx: number, cube: Cube) => boolean;
+type CanLowerCallback = (idx: number, cube: Cube) => boolean;
 type BiasCallback = (a: number, b: number) => number;
 
 function COVERS(cover: Cover, cube: Cube): boolean {
   return tautology(cover, invBi(cube.bigint));
 }
 
+// The rows of the blocking and covering matrices are column masks, whose type
+// (number or BigInt) only Columns knows about; see there for the mapping.
 function EXPAND1(
   cube: Cube,
   onSet: Cube[],
@@ -31,98 +34,108 @@ function EXPAND1(
   canRaise: CanRaiseCallback,
   bias: BiasCallback,
 ): Cube {
-  const cubeInv = invBi(cube.bigint);
-  let blockingMatrix = offSet.map(
-    (c) => new Set(bitIndices(BI.and(cubeInv, c.bigint))),
-  );
-  blockingMatrix = blockingMatrix.filter((c) => c.size);
-  let coveringMatrix = onSet.map(
-    (c) =>
-      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint)))),
-  );
-  coveringMatrix = coveringMatrix.filter((c) => c.size);
+  return expand1(Columns.from(cube), cube, onSet, offSet, canRaise, bias);
+}
 
-  const toRaise: Set<number> = new Set([...cube.set].sort(bias));
+function expand1(
+  cols: Columns<unknown>,
+  cube: Cube,
+  onSet: Cube[],
+  offSet: Cube[],
+  canRaise: CanRaiseCallback,
+  bias: BiasCallback,
+): Cube {
+  const blockingMatrix = cols.blockingRows(offSet);
+  const coveringMatrix = cols.coveringRows(onSet);
 
-  const count: number[] = [];
-  for (let i = Math.max(...toRaise); i >= 0; --i) count.push(0);
-  for (const c of coveringMatrix) for (const i of c) ++count[i];
+  // Columns still to be raised, and the order to consider them in
+  const order = cube.lits
+    .slice()
+    .sort(bias)
+    .map((l) => cols.column(l));
+  let toRaise = cols.all;
+
+  const count = cols.countColumns(coveringMatrix);
 
   while (coveringMatrix.length && blockingMatrix.length) {
-    const essential: Set<number> = new Set();
+    let essential = cols.none;
     for (const b of blockingMatrix)
-      if (b.size === 1) essential.add(b.values().next().value);
+      if (cols.isUnit(b)) essential = cols.or(essential, b);
 
-    if (essential.size) {
-      for (const e of essential) {
-        toRaise.delete(e ^ 1);
-        blockingMatrix = blockingMatrix.filter((b) => !b.has(e));
-        coveringMatrix = coveringMatrix.filter((c) => !c.has(e ^ 1));
-      }
-      const inessentialColumns = new Set(toRaise);
-      for (const b of blockingMatrix)
-        for (const i of b) inessentialColumns.delete(i ^ 1);
+    if (!cols.isNone(essential)) {
+      toRaise = cols.andNot(toRaise, essential);
+      const blocked = cols.dropRows(blockingMatrix, essential);
+      cols.dropRows(coveringMatrix, essential);
 
-      for (const i of inessentialColumns) {
-        toRaise.delete(i);
-        cube = cube.raise(i);
-        coveringMatrix = coveringMatrix.filter(
-          (c) => !(c.delete(i) && !c.size),
-        );
-      }
+      // Columns no off-set cube blocks any more can all be raised at once
+      const inessential = cols.andNot(toRaise, blocked);
+      for (const j of order)
+        if (cols.has(inessential, j)) cube = cube.raise(cols.lit(j));
+      toRaise = cols.andNot(toRaise, inessential);
+      cols.deleteColumns(coveringMatrix, inessential);
       if (!blockingMatrix.length || !coveringMatrix.length) break;
     }
 
-    const feasible: Set<number> = new Set();
-    for (const c of coveringMatrix)
-      if (c.size === 1) feasible.add(c.values().next().value);
+    // Columns that on their own would absorb an on-set cube, in row order
+    const feasible: number[] = [];
+    let seen = cols.none;
+    for (const c of coveringMatrix) {
+      if (!cols.isUnit(c) || !cols.isNone(cols.and(c, seen))) continue;
+      seen = cols.or(seen, c);
+      feasible.push(cols.columns(c)[0]);
+    }
 
-    if (feasible.size) {
+    if (feasible.length) {
       let cnt = 0;
       let raise = -1;
-      for (const r of [...feasible].sort(bias)) {
-        if (count[r] > cnt && canRaise(r, cube.set)) {
-          cnt = count[r];
-          raise = r;
+      for (const j of feasible.sort((a, b) => bias(cols.lit(a), cols.lit(b)))) {
+        if (count[j] > cnt && canRaise(cols.lit(j), cube)) {
+          cnt = count[j];
+          raise = j;
         }
       }
       if (raise >= 0) {
-        toRaise.delete(raise);
-        cube = cube.raise(raise);
-        coveringMatrix = coveringMatrix.filter(
-          (c) => !(c.delete(raise) && !c.size),
-        );
-        for (const b of blockingMatrix) b.delete(raise ^ 1);
+        const bit = cols.bit(raise);
+        toRaise = cols.andNot(toRaise, bit);
+        cube = cube.raise(cols.lit(raise));
+        cols.deleteColumns(coveringMatrix, bit);
+        cols.clearColumns(blockingMatrix, bit);
         continue;
       }
     }
 
     let cnt = 0;
     let raise = -1;
-    for (const r of toRaise) {
-      if (count[r] > cnt && canRaise(r, cube.set)) {
-        cnt = count[r];
-        raise = r;
+    for (const j of order) {
+      if (!cols.has(toRaise, j)) continue;
+      if (count[j] > cnt && canRaise(cols.lit(j), cube)) {
+        cnt = count[j];
+        raise = j;
       }
     }
 
     if (raise < 0) {
-      toRaise.clear();
+      toRaise = cols.none;
       break;
     }
 
-    toRaise.delete(raise);
-    cube = cube.raise(raise);
-    for (const c of coveringMatrix) c.delete(raise);
-    for (const b of blockingMatrix) b.delete(raise ^ 1);
+    const bit = cols.bit(raise);
+    toRaise = cols.andNot(toRaise, bit);
+    cube = cube.raise(cols.lit(raise));
+    cols.clearColumns(coveringMatrix, bit);
+    cols.clearColumns(blockingMatrix, bit);
   }
 
   if (blockingMatrix.length) {
-    const MINLOW = MINUCOV(blockingMatrix);
-    for (const m of MINLOW) toRaise.delete(m ^ 1);
+    const MINLOW = MINUCOV(blockingMatrix.map((b) => cols.blockingSet(b)));
+    for (const m of MINLOW)
+      toRaise = cols.andNot(toRaise, cols.bit(cols.column(m ^ 1)));
   }
 
-  for (const t of toRaise) if (canRaise(t, cube.set)) cube = cube.raise(t);
+  for (const j of order) {
+    if (cols.has(toRaise, j) && canRaise(cols.lit(j), cube))
+      cube = cube.raise(cols.lit(j));
+  }
 
   return cube;
 }
@@ -134,45 +147,50 @@ function EXPAND1_PRESTO(
   canRaise: CanRaiseCallback,
   bias: BiasCallback,
 ): Cube {
-  let coveringMatrix = onSet.map(
-    (c) =>
-      new Set(bitIndices(BI.and(cube.bigint, BI.xor(cube.bigint, c.bigint)))),
-  );
-  coveringMatrix = coveringMatrix.filter((c) => c.size);
+  return expand1Presto(Columns.from(cube), cube, onSet, cover, canRaise, bias);
+}
 
-  const toRaise = [...cube.set];
-  const count: number[] = [];
-  for (let i = Math.max(...toRaise); i >= 0; --i) count.push(0);
-  for (const c of coveringMatrix) for (const i of c) ++count[i];
+function expand1Presto(
+  cols: Columns<unknown>,
+  cube: Cube,
+  onSet: Cube[],
+  cover: Cover,
+  canRaise: CanRaiseCallback,
+  bias: BiasCallback,
+): Cube {
+  const coveringMatrix = cols.coveringRows(onSet);
+
+  const toRaise = cube.lits.map((l) => cols.column(l));
+  const count = cols.countColumns(coveringMatrix);
 
   while (toRaise.length) {
-    const feasible: Set<number> = new Set();
+    let feasible = cols.none;
     for (const c of coveringMatrix)
-      if (c.size === 1) feasible.add(c.values().next().value);
+      if (cols.isUnit(c)) feasible = cols.or(feasible, c);
 
     toRaise.sort(
       (a, b) =>
-        +feasible.has(a) - +feasible.has(b) ||
+        +cols.has(feasible, a) - +cols.has(feasible, b) ||
         count[a] - count[b] ||
-        bias(b, a),
+        bias(cols.lit(b), cols.lit(a)),
     );
 
-    const cantRaise = [];
+    const cantRaise: number[] = [];
     while (toRaise.length) {
       const r = toRaise.pop() as number;
-      if (!canRaise(r, cube.set)) {
+      if (!canRaise(cols.lit(r), cube)) {
         cantRaise.unshift(r);
         continue;
       }
-      const nc = cube.raise(r);
+      const nc = cube.raise(cols.lit(r));
       if (!COVERS(cover, nc)) {
-        coveringMatrix = coveringMatrix.filter((c) => !c.has(r));
+        cols.dropRows(coveringMatrix, cols.bit(r));
         toRaise.push(...cantRaise);
         break;
       }
       cube = nc;
-      for (const c of coveringMatrix) c.delete(r);
-      coveringMatrix = coveringMatrix.filter((c) => c.size);
+      // No row is ever empty here, so this drops exactly the emptied ones
+      cols.deleteColumns(coveringMatrix, cols.bit(r));
       toRaise.push(...cantRaise.splice(0));
     }
   }
@@ -190,7 +208,7 @@ function EXPAND(
 ): Cube[] {
   if (!onSet.length) return onSet;
   onSet = onSet.slice();
-  onSet.sort((a, b) => a.set.size - b.set.size);
+  onSet.sort((a, b) => a.size - b.size);
 
   const firstCube = onSet[0];
   do {
@@ -209,7 +227,7 @@ function EXPAND(
     onSet = onSet.filter((o) => !cube.covers(o));
     onSet.push(cube);
   } while (
-    onSet[0].set.size >= firstCube.set.size &&
+    onSet[0].size >= firstCube.size &&
     BI.ne(onSet[0].bigint, firstCube.bigint)
   );
 
@@ -217,14 +235,14 @@ function EXPAND(
 }
 
 function REDUNDANT(onSet: Cube[], dcSet: Cube[]): [Cube[], Cube[]] {
-  const cover = Cover.from([...dcSet, ...onSet]);
+  const cubes = [...dcSet, ...onSet];
   const E: Cube[] = []; // Relatively essential
   const R: Cube[] = []; // Redundant
   for (let i = 0; i < onSet.length; ++i) {
-    const cube = cover.pop() as Cube;
-    if (COVERS(cover, cube)) R.push(cube);
+    const cube = cubes.pop() as Cube;
+    if (COVERS(Cover.from(cubes), cube)) R.push(cube);
     else E.push(cube);
-    cover.unshift(cube);
+    cubes.unshift(cube);
   }
   return [E, R];
 }
@@ -584,14 +602,12 @@ function ESSENTIAL_PRIMES(onSet: Cube[], dcSet: Cube[]): Cube[] {
 
 function CUBE_ORDER(cubes: Cube[]): void {
   if (cubes.length <= 1) return;
-  const seed = cubes.reduce((acc, cur) =>
-    cur.set.size <= acc.set.size ? cur : acc,
-  );
+  const seed = cubes.reduce((acc, cur) => (cur.size <= acc.size ? cur : acc));
   cubes.sort((a, b) => {
     const pc1 = popcount(BI.and(a.bigint, seed.bigint));
-    const dist1 = a.set.size - pc1 + (seed.set.size - pc1);
+    const dist1 = a.size - pc1 + (seed.size - pc1);
     const pc2 = popcount(BI.and(b.bigint, seed.bigint));
-    const dist2 = b.set.size - pc2 + (seed.set.size - pc2);
+    const dist2 = b.size - pc2 + (seed.size - pc2);
     return dist1 - dist2;
   });
 }
@@ -696,7 +712,7 @@ function REDUCE(
         for (let toLower = bitIndices(sccc); toLower.length; ) {
           const toLowerRetry: number[] = [];
           for (const t of toLower) {
-            if (canLower(t ^ 1, reduced.set)) reduced = reduced.lower(t ^ 1);
+            if (canLower(t ^ 1, reduced)) reduced = reduced.lower(t ^ 1);
             else toLowerRetry.push(t);
           }
           if (toLowerRetry.length === toLower.length) break;
@@ -728,7 +744,7 @@ function MAXIMUM_REDUCTION(
       for (let toLower = bitIndices(sccc); toLower.length; ) {
         const toLowerRetry: number[] = [];
         for (const t of toLower) {
-          if (canLower(t ^ 1, reduced.set)) reduced = reduced.lower(t ^ 1);
+          if (canLower(t ^ 1, reduced)) reduced = reduced.lower(t ^ 1);
           else toLowerRetry.push(t);
         }
         if (toLowerRetry.length === toLower.length) break;
@@ -767,7 +783,7 @@ function LAST_GASP(
 }
 
 function COST(cover: Cube[]): number {
-  return cover.reduce((a, c) => a + c.set.size, 0);
+  return cover.reduce((a, c) => a + c.size, 0);
 }
 
 export default function espresso(

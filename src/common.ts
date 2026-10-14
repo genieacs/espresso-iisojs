@@ -66,7 +66,8 @@ export function componentReduction(
     const I = i - (i % 2);
     if (map.has(I)) continue;
     const s: Set<Cube> = new Set();
-    for (const c of cubes) if (c.set.has(i) || c.set.has(i + 1)) s.add(c);
+    for (const c of cubes)
+      if (c.lits.includes(i) || c.lits.includes(i + 1)) s.add(c);
     if (s.size) map.set(I, s);
   }
 

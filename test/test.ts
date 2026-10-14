@@ -44,8 +44,8 @@ const espressoCmd = (input: string): string => {
 
 function espressoRef(onSet: Cube[], dcSet: Cube[]): Cube[] {
   let maxVar = 0;
-  for (const o of onSet) maxVar = Math.max(maxVar, ...o.set);
-  for (const o of dcSet) maxVar = Math.max(maxVar, ...o.set);
+  for (const o of onSet) maxVar = Math.max(maxVar, ...o.lits);
+  for (const o of dcSet) maxVar = Math.max(maxVar, ...o.lits);
   const varCount = Math.trunc(maxVar / 2) + 1;
   const lines = [`.i ${varCount}`, ".o 1", `.p ${onSet.length + dcSet.length}`];
   const filler = "-".repeat(varCount);
@@ -85,8 +85,8 @@ function parsePlaFile(content: string): { onSet: Cube[]; dcSet: Cube[] } {
 
 function smtSop(terms: Cube[]): string {
   const strs = terms.map((term) => {
-    if (!term.set.size) return "true";
-    const arr = Array.from(term.set).map((i) => {
+    if (!term.size) return "true";
+    const arr = term.lits.map((i) => {
       const I = Math.trunc(i / 2);
       return i % 2 ? `v${I}` : `(not v${I})`;
     });
@@ -98,8 +98,8 @@ function smtSop(terms: Cube[]): string {
 
 function smtPos(terms: Cube[]): string {
   const strs = terms.map((term) => {
-    if (!term.set.size) return "false";
-    const arr = Array.from(term.set).map((i) => {
+    if (!term.size) return "false";
+    const arr = term.lits.map((i) => {
       const I = Math.trunc(i / 2);
       return i % 2 ? `v${I}` : `(not v${I})`;
     });
@@ -123,7 +123,7 @@ function smtAssert(expression: string): boolean {
 }
 
 function COST(cover: Cube[]): number {
-  return cover.reduce((a, c) => a + c.set.size, 0);
+  return cover.reduce((a, c) => a + c.size, 0);
 }
 
 async function runTests(dir: string): Promise<void> {

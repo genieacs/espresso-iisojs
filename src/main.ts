@@ -11,7 +11,7 @@ function toCubes(input: number[][]): Cube[] {
 }
 
 function fromCubes(input: Cube[]): number[][] {
-  return input.map((i) => [...i.set]);
+  return input.map((i) => [...i.lits]);
 }
 
 export function sat(cnf: number[][]): boolean {
@@ -53,13 +53,22 @@ export function espresso(
   const _offSet = options.computeOffSet
     ? _complement(Cover.from([..._onSet, ..._dcSet]))
     : undefined;
+  // The callbacks take a Set. Calls come in runs for the same cube, so the
+  // last conversion is kept.
+  const { canRaise, canLower, bias } = options;
+  let cube: Cube | undefined;
+  let cubeSet = new Set<number>();
+  const set = (c: Cube): Set<number> => {
+    if (c !== cube) cubeSet = new Set((cube = c).lits);
+    return cubeSet;
+  };
   const res = _espresso(
     _onSet,
     _dcSet,
     _offSet,
-    options.canRaise,
-    options.canLower,
-    options.bias,
+    canRaise && ((i, c) => canRaise(i, set(c))),
+    canLower && ((i, c) => canLower(i, set(c))),
+    bias,
   );
   return fromCubes(res);
 }
